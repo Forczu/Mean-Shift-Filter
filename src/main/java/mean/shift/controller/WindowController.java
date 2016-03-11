@@ -26,10 +26,18 @@ public class WindowController implements Initializable {
     private Button leftImageBtn;
 
     @FXML
+    private Button runBtn;
+
+    @FXML
     private SplitPane mainSplitPane;
 
     @FXML
     private ImageView leftImageView;
+
+    @FXML
+    private ImageView rightImageView;
+
+    private String imagePath = null;
 
     @FXML
     protected void handleLeftImageButtonAction(ActionEvent event) {
@@ -42,9 +50,18 @@ public class WindowController implements Initializable {
             );
     	File file = fileChooser.showOpenDialog(null);
         if (file != null) {
-        	Image image = new Image(file.toURI().toString());
-        	leftImageView.setImage(image);
+        	imagePath = file.toURI().toString();
+        	leftImageView.setImage(new Image(imagePath));
         }
+    }
+
+    @FXML
+    protected void handleRunButtonAction(ActionEvent event) {
+    	// wywolanie funkcji filtru mean-shift
+    	if (imagePath == null)
+    		return;
+    	Image image = new Image(imagePath);
+    	rightImageView.setImage(image);
     }
 
 	public void initialize(URL location, ResourceBundle resources) {
@@ -61,8 +78,12 @@ public class WindowController implements Initializable {
 				{
 					@Override
 					public void run() {
-						leftImageView.setFitWidth(mainPane.getWidth() * 3.0 / 8.0);
-						leftImageView.setFitHeight(mainPane.getHeight());
+						double newWidth = mainPane.getWidth() * 3.0 / 8.0;
+						double newHeight = mainPane.getHeight();
+						leftImageView.setFitWidth(newWidth);
+						leftImageView.setFitHeight(newHeight);
+						rightImageView.setFitWidth(newWidth);
+						rightImageView.setFitHeight(newHeight);
 					}
 				};
 				timer.schedule(task, delayTime);
@@ -70,6 +91,8 @@ public class WindowController implements Initializable {
 		};
 		mainSplitPane.widthProperty().addListener(listener);
 		mainSplitPane.heightProperty().addListener(listener);
+		mainSplitPane.lookupAll(".split-pane-divider").stream()
+        	.forEach(div ->  div.setMouseTransparent(true));
 	}
 
 }

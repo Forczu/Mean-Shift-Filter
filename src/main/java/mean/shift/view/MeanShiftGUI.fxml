@@ -18,12 +18,12 @@
             <VBox alignment="CENTER" prefHeight="200.0" prefWidth="442.0">
                <children>
                   <Button id="leftImageBtn" fx:id="leftImageBtn" mnemonicParsing="false" onAction="#handleLeftImageButtonAction" text="&lt;- Rysunek" />
-                  <Button mnemonicParsing="false" text="WYKONAJ" />
+                  <Button fx:id="runBtn" mnemonicParsing="false" onAction="#handleRunButtonAction" text="WYKONAJ" />
                </children>
             </VBox>
-            <AnchorPane prefHeight="200.0" prefWidth="200.0">
+            <AnchorPane maxHeight="-Infinity" maxWidth="-Infinity">
                <children>
-                  <ImageView fitHeight="400.0" fitWidth="300.0" pickOnBounds="true" preserveRatio="true" AnchorPane.bottomAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0" />
+                  <ImageView fx:id="rightImageView" fitHeight="400.0" fitWidth="300.0" pickOnBounds="true" preserveRatio="true" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0" />
                </children>
             </AnchorPane>
         </items>
