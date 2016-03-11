@@ -19,6 +19,7 @@
                <children>
                   <Button id="leftImageBtn" fx:id="leftImageBtn" mnemonicParsing="false" onAction="#handleLeftImageButtonAction" text="&lt;- Rysunek" />
                   <Button fx:id="runBtn" mnemonicParsing="false" onAction="#handleRunButtonAction" text="WYKONAJ" />
+               	  <Button id="rightImageBtn" fx:id="rightImageBtn" mnemonicParsing="false" onAction="#handleRightImageButtonAction" text="Zapisz" disable="true" />
                </children>
             </VBox>
             <AnchorPane maxHeight="-Infinity" maxWidth="-Infinity">

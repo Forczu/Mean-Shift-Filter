@@ -1,10 +1,14 @@
 package mean.shift.controller;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.URL;
 import java.util.ResourceBundle;
 import java.util.Timer;
 import java.util.TimerTask;
+
+import javax.imageio.ImageIO;
+import javafx.embed.swing.SwingFXUtils;
 
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -27,6 +31,9 @@ public class WindowController implements Initializable {
 
     @FXML
     private Button runBtn;
+    
+    @FXML
+    private Button rightImageBtn;
 
     @FXML
     private SplitPane mainSplitPane;
@@ -62,8 +69,28 @@ public class WindowController implements Initializable {
     		return;
     	Image image = new Image(imagePath);
     	rightImageView.setImage(image);
+    	rightImageBtn.setDisable(false);
     }
 
+    public void handleRightImageButtonAction(ActionEvent event) {
+    	
+    	try {
+			FileChooser fileChooser = new FileChooser();
+			fileChooser.setTitle("Wybierz miejsce na dysku, do którego chcesz zapisać plik");
+			fileChooser.getExtensionFilters().addAll(
+			        new FileChooser.ExtensionFilter("PNG", "*.png")
+			    );
+			File file = fileChooser.showSaveDialog(null);
+			if (file != null) {
+				
+				ImageIO.write(SwingFXUtils.fromFXImage(rightImageView.getImage(),
+			            null), "png", file);
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+    }
+    
 	public void initialize(URL location, ResourceBundle resources) {
 
 		final ChangeListener<Number> listener = new ChangeListener<Number>() {
