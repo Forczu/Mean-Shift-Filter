@@ -1,9 +1,20 @@
 package mean.shift.processing;
 
+import javafx.geometry.Point2D;
+import javafx.geometry.Point3D;
 import javafx.scene.image.Image;
 import javafx.scene.image.PixelReader;
 
 public class ColorProcesser {
+
+	protected static final double Epsilon = 0.008856;
+	protected static final double Kappa = 903.3;
+	protected static final double c = -1.0 / 3.0;
+
+	// D65 white point
+	protected static final double xn = 95.047;
+	protected static final double yn = 100.000;
+	protected static final double zn = 108.883;
 
 	/**
 	 * Zwraca reprezentacje obrazu w postaci tablicy pikseli.
@@ -39,62 +50,104 @@ public class ColorProcesser {
 	}
 
 	public float[] rgbToLuv(int argb) {
-		// standaryzacja RGB
+
+		// normalizacja RGB
 		float[] rgb = toRgb(argb);
-		double var_R = rgb[0];
-		double var_G = rgb[1];
-		double var_B = rgb[2];
-		// RGB -> XYZ (http://www.easyrgb.com/index.php?X=MATH&H=02#text2)
-		if ( var_R > 0.04045 ) var_R = Math.pow((var_R + 0.055) / 1.055, 2.4);
-		else                   var_R = var_R / 12.92f;
-		if ( var_G > 0.04045 ) var_G = Math.pow((var_G + 0.055) / 1.055, 2.4);
-		else                   var_G = var_G / 12.92f;
-		if ( var_B > 0.04045 ) var_B = Math.pow((var_B + 0.055) / 1.055, 2.4);
-		else                   var_B = var_B / 12.92f;
+		double R = rgb[0];
+		double G = rgb[1];
+		double B = rgb[2];
 
-		var_R *= 100;
-		var_G *= 100;
-		var_B *= 100;
+		double r = toPivotRgb(R);
+		double g = toPivotRgb(G);
+		double b = toPivotRgb(B);
 
-		//Observer. = 2‹, Illuminant = D65
-		double X = var_R * 0.4124 + var_G * 0.3576 + var_B * 0.1805;
-		double Y = var_R * 0.2126 + var_G * 0.7152 + var_B * 0.0722;
-		double Z = var_R * 0.0193 + var_G * 0.1192 + var_B * 0.9505;
+        // Observer. = 2‹, Illuminant = D65
+		// RGB -> XYZ
+		double X = r * 0.4124 + g * 0.3576 + b * 0.1805;
+		double Y = r * 0.2126 + g * 0.7152 + b * 0.0722;
+		double Z = r * 0.0193 + g * 0.1192 + b * 0.9505;
+		// XYZ -> RGB
+		double y = Y / yn;
+		double L = y > Epsilon ? 116.0 * Math.pow(y, 1.0 / 3.0) - 16.0 : Kappa * y;
 
-		//XYZ -> LUV (http://www.easyrgb.com/index.php?X=MATH&H=16#text16)
-		double var_U = ( 4 * X ) / ( X + ( 15 * Y ) + ( 3 * Z ) );
-		double var_V = ( 9 * Y ) / ( X + ( 15 * Y ) + ( 3 * Z ) );
+		double targetDenominator = (1.0 * X + 15.0 * Y + 3.0 * Z);
+		double referenceDenominator = (1.0 * xn + 15.0 * yn + 3.0 * zn);
 
-		double var_Y = Y / 100;
-		if (var_Y > 0.008856 ) var_Y = Math.pow( var_Y , ( 1/3 ));
-		else    			   var_Y = ( 7.787 * var_Y ) + ( 16 / 116 );
+		double xTarget = targetDenominator == 0 ? 0 : ((4.0 * X / targetDenominator) - (4.0 * xn / referenceDenominator));
+		double yTarget = targetDenominator == 0 ? 0 : ((9.0 * Y / targetDenominator) - (9.0 * yn / referenceDenominator));
 
-		double ref_X =  95.047;        //Observer= 2°, Illuminant= D65
-		double ref_Y = 100.000;
-		double ref_Z = 108.883;
+		double U = 13.0 * L * xTarget;
+		double V = 13.0 * L * yTarget;
 
-		double ref_U = ( 4 * ref_X ) / ( ref_X + ( 15 * ref_Y ) + ( 3 * ref_Z ) );
-		double ref_V = ( 9 * ref_Y ) / ( ref_X + ( 15 * ref_Y ) + ( 3 * ref_Z ) );
-
-		double L =  116 * var_Y - 16;
-		double u =  13 * L * (var_U - ref_U);
-		double v =  13 * L * (var_V - ref_V);
-
-		return new float[] {(float)L, (float)u, (float)v};
+		return new float[] {(float)L, (float)U, (float)V};
 	}
 
-	public float[][][] getLuvArray(int[][] rgbArray) {
+	public int luvToRgb(float[] luv) {
+		// LUV
+		double L = luv[0];
+		double U = luv[1];
+		double V = luv[2];
+		// LUV -> XYZ
+		double uPrime = 4.0 * xn / (1.0 * xn + 15.0 * yn + 3.0 * zn);
+		double vPrime = 9.0 * yn / (1.0 * xn + 15.0 * yn + 3.0 * zn);
+		double a = (1.0 / 3.0) * ((52.0 * L) / (U + 13 * L * uPrime) - 1.0);
+		double imteL_16_116 = (L + 16.0) / 116.0;
+		double y = L > Kappa * Epsilon
+				? imteL_16_116 * imteL_16_116 * imteL_16_116
+				: L / Kappa;
+		double b = -5.0 * y;
+		double d = y * ((39.0 * L) / (V + 13.0 * L * vPrime) - 5.0);
+		double x = (d - b) / (a - c);
+		double z = x * a + b;
+		// XYZ -> RGB
+		double r = x * 3.2406 + y * -1.5372 + z * -0.4986;
+		double g = x * -0.9689 + y * 1.8758 + z * 0.0415;
+		b = x * 0.0557 + y * -0.2040 + z * 1.0570;
+
+		r = r > 0.0031308 ? 1.055 * Math.pow(r, 1.0 / 2.4) - 0.055 : 12.92 * r;
+        g = g > 0.0031308 ? 1.055 * Math.pow(g, 1.0 / 2.4) - 0.055 : 12.92 * g;
+        b = b > 0.0031308 ? 1.055 * Math.pow(b, 1.0 / 2.4) - 0.055 : 12.92 * b;
+        // standaryzacja RGB
+        int R = (int)toRgb(r);
+        int G = (int)toRgb(g);
+        int B = (int)toRgb(b);
+
+		return 0xFF000000 | (R << 16 ) | (G << 8) | B;
+	}
+
+	private double toRgb(double n) {
+        double result = 255.0 * n;
+        if (result < 0) return 0;
+        if (result > 255) return 255;
+        return result;
+	}
+
+	private double toPivotRgb(double n) {
+		return (n > 0.04045 ? Math.pow((n + 0.055) / 1.055, 2.4) : n / 12.92) * 100.0;
+	}
+
+	public LuvPixel[] getLuvArray(int[][] rgbArray) {
     	// wczytanie zfiltrowanych pikseli; z_i, i = 1, 2, ... , n
 		int width = rgbArray.length;
 		int height = rgbArray[0].length;
-		float[][][] luvArray = new float[width][height][3];
+		LuvPixel[] luvArray = new LuvPixel[width * height];
     	for(int i = 0; i < width; ++i) {
     		for(int j = 0; j < height; ++j) {
-    			luvArray[i][j] = rgbToLuv(rgbArray[i][j]);
+    			float[] color = rgbToLuv(rgbArray[i][j]);
+    			luvArray[j * width + i] = new LuvPixel(i, j, color[0], color[1], color[2]);
     		}
     	}
     	return luvArray;
 	}
 
-
+	public int[][] getRgbArray(LuvPixel[] luvArray, int width) {
+		int[][] rgbArray = new int[width][luvArray.length / width];
+		for (int i = 0; i < luvArray.length; i++) {
+			Point3D color = luvArray[i].getColor();
+			Point2D pos = luvArray[i].getPosition();
+			int argb = luvToRgb(new float[]{(float) color.getX(), (float) color.getY(), (float) color.getZ()});
+			rgbArray[(int)pos.getX()][(int)pos.getY()] = argb;
+		}
+		return rgbArray;
+	}
 }
