@@ -1,10 +1,14 @@
 package mean.shift.controller;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.URL;
 import java.util.ResourceBundle;
 import java.util.Timer;
 import java.util.TimerTask;
+
+import javax.imageio.ImageIO;
+import javafx.embed.swing.SwingFXUtils;
 
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -22,6 +26,9 @@ import javafx.stage.FileChooser;
 import mean.shift.processing.ColorProcesser;
 
 public class WindowController implements Initializable {
+	
+	// Members
+	
 	@FXML
 	private AnchorPane mainPane;
 
@@ -30,6 +37,9 @@ public class WindowController implements Initializable {
 
     @FXML
     private Button runBtn;
+    
+    @FXML
+    private Button rightImageBtn;
 
     @FXML
     private SplitPane mainSplitPane;
@@ -42,6 +52,8 @@ public class WindowController implements Initializable {
 
     private String imagePath = null;
 
+    //Event handlers
+    
     @FXML
     protected void handleLeftImageButtonAction(ActionEvent event) {
     	FileChooser fileChooser = new FileChooser();
@@ -65,11 +77,30 @@ public class WindowController implements Initializable {
     		return;
     	Image image = new Image(imagePath);
     	rightImageView.setImage(image);
-
-    	ColorProcesser cp = new ColorProcesser();
-    	int[][] pixels = cp.getPixelArray(image);
+    	rightImageBtn.setDisable(false);
     }
 
+    public void handleRightImageButtonAction(ActionEvent event) {
+    	
+    	try {
+			FileChooser fileChooser = new FileChooser();
+			fileChooser.setTitle("Wybierz miejsce na dysku, do którego chcesz zapisać plik");
+			fileChooser.getExtensionFilters().addAll(
+			        new FileChooser.ExtensionFilter("PNG", "*.png")
+			    );
+			File file = fileChooser.showSaveDialog(null);
+			if (file != null) {
+				
+				ImageIO.write(SwingFXUtils.fromFXImage(rightImageView.getImage(),
+			            null), "png", file);
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+    }
+    
+    //Methods
+    
 	public void initialize(URL location, ResourceBundle resources) {
 
 		final ChangeListener<Number> listener = new ChangeListener<Number>() {
@@ -99,6 +130,16 @@ public class WindowController implements Initializable {
 		mainSplitPane.heightProperty().addListener(listener);
 		mainSplitPane.lookupAll(".split-pane-divider").stream()
         	.forEach(div ->  div.setMouseTransparent(true));
+			
+		applyCSS();
 	}
+	
+	private void applyCSS() {
+		
+		leftImageBtn.getStyleClass().add("button-metallic-grey");
+		runBtn.getStyleClass().add("button-metallic-grey");
+		rightImageBtn.getStyleClass().add("button-metallic-grey");    
+	}
+
 
 }
