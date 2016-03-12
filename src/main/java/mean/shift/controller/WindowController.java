@@ -23,6 +23,9 @@ import javafx.scene.layout.AnchorPane;
 import javafx.stage.FileChooser;
 
 public class WindowController implements Initializable {
+	
+	// Members
+	
 	@FXML
 	private AnchorPane mainPane;
 
@@ -46,6 +49,8 @@ public class WindowController implements Initializable {
 
     private String imagePath = null;
 
+    //Event handlers
+    
     @FXML
     protected void handleLeftImageButtonAction(ActionEvent event) {
     	FileChooser fileChooser = new FileChooser();
@@ -91,6 +96,8 @@ public class WindowController implements Initializable {
 		}
     }
     
+    //Methods
+    
 	public void initialize(URL location, ResourceBundle resources) {
 
 		final ChangeListener<Number> listener = new ChangeListener<Number>() {
@@ -119,7 +126,16 @@ public class WindowController implements Initializable {
 		mainSplitPane.widthProperty().addListener(listener);
 		mainSplitPane.heightProperty().addListener(listener);
 		mainSplitPane.lookupAll(".split-pane-divider").stream()
-        	.forEach(div ->  div.setMouseTransparent(true));
+        	.forEach(div ->  div.setMouseTransparent(true));			
+				
+		applyCSS();
+	}
+	
+	private void applyCSS() {
+		
+		leftImageBtn.getStyleClass().add("button-metallic-grey");
+		runBtn.getStyleClass().add("button-metallic-grey");
+		rightImageBtn.getStyleClass().add("button-metallic-grey");	
 	}
 
 }
