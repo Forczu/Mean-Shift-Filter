@@ -15,8 +15,11 @@ import javafx.scene.control.Button;
 import javafx.scene.control.SplitPane;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.image.PixelReader;
+import javafx.scene.image.WritableImage;
 import javafx.scene.layout.AnchorPane;
 import javafx.stage.FileChooser;
+import mean.shift.processing.ColorProcesser;
 
 public class WindowController implements Initializable {
 	@FXML
@@ -62,6 +65,9 @@ public class WindowController implements Initializable {
     		return;
     	Image image = new Image(imagePath);
     	rightImageView.setImage(image);
+
+    	ColorProcesser cp = new ColorProcesser();
+    	int[][] pixels = cp.getPixelArray(image);
     }
 
 	public void initialize(URL location, ResourceBundle resources) {
