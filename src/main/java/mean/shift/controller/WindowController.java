@@ -28,7 +28,9 @@ import javafx.scene.image.PixelWriter;
 import javafx.scene.image.WritableImage;
 import javafx.scene.layout.AnchorPane;
 import javafx.stage.FileChooser;
+import mean.shift.kernel.RectangularKernel;
 import mean.shift.processing.ColorProcesser;
+import mean.shift.processing.EuclideanMetrics;
 import mean.shift.processing.LuvPixel;
 
 public class WindowController implements Initializable {
@@ -228,58 +230,62 @@ public class WindowController implements Initializable {
         				// wartosci przesuniecia
         				float mx = 0,  my = 0, mL = 0, mU = 0, mV = 0;
         				int num = 0;
+        				double pointNum = 0.0, colorNum = 0.0;
         				// MAGIA
+
+        				// MEAN SHIF (17)
+        				RectangularKernel kernel = new RectangularKernel();
+        				EuclideanMetrics distance = new EuclideanMetrics();
         				for (int ry = -hrad; ry <= hrad; ry++) {
         					int y2 = yc + ry;
         					if (y2 >= 0 && y2 < height) {
         						for (int rx = -hrad; rx <= hrad; rx++) {
         							int x2 = xc + rx;
-        							if (x2 >= 0 && x2 < width && ry * ry + rx * rx <= hrad * hrad) {
-        								int index = y2 * width + x2;
-        								if (index >= luv.length)
-        									continue;
-        								try {
+        							if (x2 >= 0 && x2 < width) {
+        								double pointDistance = distance.getDistance(ry, rx);
+        								if (pointDistance <= hrad) {
         									color = luv[y2 * width + x2].getColor();
-        								} catch (Exception e){
-        									e.toString();
+
+            								float L2 = (float) color.getX();
+            								float U2 = (float) color.getY();
+            								float V2 = (float) color.getZ();
+
+            								double dL = Lc - L2;
+            								double dU = Uc - U2;
+            								double dV = Vc - V2;
+
+            								double colorDistance = distance.getDistance(dL, dU, dV);
+            								if (colorDistance <= hcolor) {
+            									double pointKernel = kernel.gFunction(Math.pow(pointDistance / hrad, 2));
+            									mx += x2 * pointKernel;
+            									my += y2 * pointKernel;
+            									pointNum += pointKernel;
+            									double colorKernel = kernel.gFunction(Math.pow(colorDistance / hcolor, 2));
+            									mL += L2 * colorKernel;
+            									mU += U2 * colorKernel;
+            									mV += V2 * colorKernel;
+            									colorNum += colorKernel;
+            								}
         								}
-
-        								float L2 = (float) color.getX();
-        								float U2 = (float) color.getY();
-        								float V2 = (float) color.getZ();
-
-        								float dL = Lc - L2;
-        								float dU = Uc - U2;
-        								float dV = Vc - V2;
-
-        								if (dL*dL + dU*dU + dV * dV <= hcolor * hcolor) {
-        									mx += x2;
-        									my += y2;
-        									mL += L2;
-        									mU += U2;
-        									mV += V2;
-        									num++;
-        								}
-
         							}
         						}
         					}
         				}
-        				float num_ = 1f / num;
-        				Lc = mL * num_;
-        				Uc = mU * num_;
-        				Vc = mV * num_;
-        				xc = (int) (mx * num_ + 0.5);
-        				yc = (int) (my * num_ + 0.5);
+
+        				xc = (int) (mx * (1.0 / pointNum) + 0.5);
+        				yc = (int) (my * (1.0 / pointNum) + 0.5);
+        				Lc = (float) (mL * (1.0 / colorNum));
+        				Uc = (float) (mU * (1.0 / colorNum));
+        				Vc = (float) (mV * (1.0 / colorNum));
+
         				int dx = xc - xcOld;
         				int dy = yc - ycOld;
-        				float dL = Lc-LcOld;
-        				float dU = Uc-UcOld;
-        				float dV = Vc-VcOld;
+        				float dL = Lc - LcOld;
+        				float dU = Uc - UcOld;
+        				float dV = Vc - VcOld;
 
         				shift = dx*dx+dy*dy+dL*dL+dU*dU+dV*dV;
         				iters++;
-
         			} while (shift > 3 && iters < maxIters);
 
         			out[i] = new LuvPixel(luv[i].getPosition(), new Point3D(Lc, Uc, Vc));
