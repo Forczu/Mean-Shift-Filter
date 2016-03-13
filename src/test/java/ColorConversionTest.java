@@ -40,4 +40,24 @@ public class ColorConversionTest {
 		assertEquals(green, returnGreen, 1.0);
 		assertEquals(blue, returnBlue, 1.0);
 	}
+	
+	@Test
+	public void luvToRgbConversionTest()
+	{
+		float[] testLuv = { 100.0f, 50.0f, -100.0f };
+		int pixel = cp.luvToRgb(testLuv);		
+		int[] rgb = { 0xFF & (pixel >> 16), 0xFF & (pixel >> 8), 0xFF & (pixel >> 0) } ;
+		
+		assertEquals(255, rgb[0], 3);
+		assertEquals(211, rgb[1], 3);
+		assertEquals(255, rgb[2], 3);
+		
+		float[] testLuv2 = {20.0f, -120.0f, 30.0f};
+		pixel = cp.luvToRgb(testLuv2);
+		int[] rgb2 = { 0xFF & (pixel >> 16), 0xFF & (pixel >> 8), 0xFF & (pixel >> 0) } ;
+		
+		assertEquals(0, rgb2[0], 3);
+		assertEquals(82.812f, rgb2[1], 3);
+		assertEquals(20.649f, rgb2[2], 3);	
+	}
 }

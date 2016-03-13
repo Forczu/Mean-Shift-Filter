@@ -1,5 +1,6 @@
 package mean.shift.controller;
 
+import java.awt.MenuItem;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
@@ -68,7 +69,7 @@ public class WindowController implements Initializable {
 
     @FXML
     private ProgressBar progressBar;
-
+    
     private String imagePath = null;
 
     private Task<Void> filterWorker;
@@ -77,6 +78,20 @@ public class WindowController implements Initializable {
 
     @FXML
     protected void handleLeftImageButtonAction(ActionEvent event) {
+    	
+    	openImage();
+    }
+
+    @FXML
+    public void handleRightImageButtonAction(ActionEvent event) {
+
+    	saveImage();
+    }
+    
+    //Methods
+
+    public void openImage()
+    {
     	FileChooser fileChooser = new FileChooser();
     	fileChooser.setTitle("Otworz plik z rysunkiem...");
     	fileChooser.getExtensionFilters().addAll(
@@ -90,9 +105,9 @@ public class WindowController implements Initializable {
         	leftImageView.setImage(new Image(imagePath));
         }
     }
-
-    public void handleRightImageButtonAction(ActionEvent event) {
-
+    
+    public void saveImage()
+    {
     	try {
 			FileChooser fileChooser = new FileChooser();
 			fileChooser.setTitle("Wybierz miejsce na dysku, do ktorego chcesz zapisac plik");
@@ -109,9 +124,7 @@ public class WindowController implements Initializable {
 			e.printStackTrace();
 		}
     }
-
-    //Methods
-
+    
 	public void initialize(URL location, ResourceBundle resources) {
 
 		final ChangeListener<Number> listener = new ChangeListener<Number>() {
@@ -165,7 +178,7 @@ public class WindowController implements Initializable {
 		text.focusedProperty().addListener((arg0, oldValue, newValue) -> {
 	        if (!newValue) {
 	            if(!text.getText().matches("[1-9][0-9]*")){
-	            	text.setText("");
+	            	text.setText("1");
 	            }
 	        }
 	    });
@@ -188,7 +201,6 @@ public class WindowController implements Initializable {
             			|| !iterationNumberBox.getText().matches(NUMERIC_PATTERN))
             		return null;
             	Image image = new Image(imagePath);
-            	rightImageBtn.setDisable(false);
 
             	ColorProcesser cp = new ColorProcesser();
             	int[][] pixels = cp.getPixelArray(image);
@@ -296,6 +308,7 @@ public class WindowController implements Initializable {
         		}
 
             	rightImageView.setImage(filteredImage);
+            	rightImageBtn.setDisable(false);
         		runBtn.setDisable(false);
                 return null;
             }

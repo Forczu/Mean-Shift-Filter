@@ -8,6 +8,7 @@ import javafx.scene.Scene;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
+import mean.shift.controller.WindowController;
 
 public class Main extends Application {
 
@@ -29,6 +30,7 @@ public class Main extends Application {
         try {
             // Load root layout from fxml file.
             FXMLLoader loader = new FXMLLoader();
+            
             loader.setLocation(Main.class.getResource("view/RootPane.fxml"));
             rootLayout = (BorderPane) loader.load();
 
@@ -37,7 +39,7 @@ public class Main extends Application {
             primaryStage.setScene(scene);
             primaryStage.show();
             
-            scene.getStylesheets().add(this.getClass().getResource("application.css").toExternalForm());   		
+            scene.getStylesheets().add(this.getClass().getResource("./view/css/application.css").toExternalForm());   		
             
         } catch (IOException e) {
             e.printStackTrace();

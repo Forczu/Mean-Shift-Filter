@@ -16,6 +16,7 @@
     -fx-font-weight: bold;
     -fx-text-fill: #333333;
     -fx-effect: dropshadow( three-pass-box , rgba(255,255,255,0.2) , 1, 0.0 , 0 , 1);
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.8), 10, 0, 0, 0);
 }
 
 .button-metallic-grey:hover {
@@ -27,3 +28,19 @@
         linear-gradient(#777777 0%, #606060 50%, #505250 51%, #2a2b2a 100%);
         -fx-text-fill: white;
 }
+
+.text-field { 
+    -fx-border: 5px;
+    -fx-border-color: firebrick;
+  	-fx-control-inner-background: #fffbb3;
+  	-fx-cursor: text;
+  	-fx-border-radius: 1px
+  	
+}
+
+.label {
+	-fx-font-weight: bold;
+	-fx-font-size: 12px;	
+	-fx-font-family: "Helvetica"; 
+} 
+
