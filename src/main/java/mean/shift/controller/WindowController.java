@@ -8,27 +8,34 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import javax.imageio.ImageIO;
-import javafx.embed.swing.SwingFXUtils;
 
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
+import javafx.concurrent.Task;
+import javafx.embed.swing.SwingFXUtils;
 import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.geometry.Point3D;
 import javafx.scene.control.Button;
+import javafx.scene.control.ProgressBar;
 import javafx.scene.control.SplitPane;
+import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.image.PixelReader;
+import javafx.scene.image.PixelWriter;
 import javafx.scene.image.WritableImage;
 import javafx.scene.layout.AnchorPane;
 import javafx.stage.FileChooser;
 import mean.shift.processing.ColorProcesser;
+import mean.shift.processing.LuvPixel;
 
 public class WindowController implements Initializable {
-	
+
+	private static String NUMERIC_PATTERN = "[1-9][0-9]*";
+
 	// Members
-	
 	@FXML
 	private AnchorPane mainPane;
 
@@ -37,7 +44,7 @@ public class WindowController implements Initializable {
 
     @FXML
     private Button runBtn;
-    
+
     @FXML
     private Button rightImageBtn;
 
@@ -50,10 +57,24 @@ public class WindowController implements Initializable {
     @FXML
     private ImageView rightImageView;
 
+    @FXML
+    private TextField spacialParameterBox;
+
+    @FXML
+    private TextField rangeParameterBox;
+
+    @FXML
+    private TextField iterationNumberBox;
+
+    @FXML
+    private ProgressBar progressBar;
+
     private String imagePath = null;
 
+    private Task<Void> filterWorker;
+
     //Event handlers
-    
+
     @FXML
     protected void handleLeftImageButtonAction(ActionEvent event) {
     	FileChooser fileChooser = new FileChooser();
@@ -70,27 +91,17 @@ public class WindowController implements Initializable {
         }
     }
 
-    @FXML
-    protected void handleRunButtonAction(ActionEvent event) {
-    	// wywolanie funkcji filtru mean-shift
-    	if (imagePath == null)
-    		return;
-    	Image image = new Image(imagePath);
-    	rightImageView.setImage(image);
-    	rightImageBtn.setDisable(false);
-    }
-
     public void handleRightImageButtonAction(ActionEvent event) {
-    	
+
     	try {
 			FileChooser fileChooser = new FileChooser();
-			fileChooser.setTitle("Wybierz miejsce na dysku, do którego chcesz zapisać plik");
+			fileChooser.setTitle("Wybierz miejsce na dysku, do ktorego chcesz zapisac plik");
 			fileChooser.getExtensionFilters().addAll(
 			        new FileChooser.ExtensionFilter("PNG", "*.png")
 			    );
 			File file = fileChooser.showSaveDialog(null);
 			if (file != null) {
-				
+
 				ImageIO.write(SwingFXUtils.fromFXImage(rightImageView.getImage(),
 			            null), "png", file);
 			}
@@ -98,9 +109,9 @@ public class WindowController implements Initializable {
 			e.printStackTrace();
 		}
     }
-    
+
     //Methods
-    
+
 	public void initialize(URL location, ResourceBundle resources) {
 
 		final ChangeListener<Number> listener = new ChangeListener<Number>() {
@@ -128,18 +139,167 @@ public class WindowController implements Initializable {
 		};
 		mainSplitPane.widthProperty().addListener(listener);
 		mainSplitPane.heightProperty().addListener(listener);
+		// zablokowanie ruchu krawedzi oddzielajacych rysunki
 		mainSplitPane.lookupAll(".split-pane-divider").stream()
         	.forEach(div ->  div.setMouseTransparent(true));
-			
+
 		applyCSS();
-	}
-	
-	private void applyCSS() {
-		
-		leftImageBtn.getStyleClass().add("button-metallic-grey");
-		runBtn.getStyleClass().add("button-metallic-grey");
-		rightImageBtn.getStyleClass().add("button-metallic-grey");    
+
+		configureAsNumericBox(spacialParameterBox);
+		configureAsNumericBox(rangeParameterBox);
+		configureAsNumericBox(iterationNumberBox);
+
+		runBtn.setOnAction(new EventHandler<ActionEvent>() {
+			public void handle(ActionEvent event) {
+            	Image image = leftImageView.getImage();
+            	if (image == null) return;
+				runBtn.setDisable(true);
+                filterWorker = createFilterWorker();
+                progressBar.progressProperty().bind(filterWorker.progressProperty());
+                new Thread(filterWorker).start();
+            }
+		});
 	}
 
+	private void configureAsNumericBox(TextField text) {
+		text.focusedProperty().addListener((arg0, oldValue, newValue) -> {
+	        if (!newValue) {
+	            if(!text.getText().matches("[1-9][0-9]*")){
+	            	text.setText("");
+	            }
+	        }
+	    });
+	}
+
+	private void applyCSS() {
+
+		leftImageBtn.getStyleClass().add("button-metallic-grey");
+		runBtn.getStyleClass().add("button-metallic-grey");
+		rightImageBtn.getStyleClass().add("button-metallic-grey");
+	}
+
+	protected Task<Void> createFilterWorker() {
+        return new Task<Void>() {
+            @Override
+            protected Void call() {
+            	// wywolanie funkcji filtru mean-shift
+            	if (imagePath == null || !spacialParameterBox.getText().matches(NUMERIC_PATTERN)
+            			|| !rangeParameterBox.getText().matches(NUMERIC_PATTERN)
+            			|| !iterationNumberBox.getText().matches(NUMERIC_PATTERN))
+            		return null;
+            	Image image = new Image(imagePath);
+            	rightImageBtn.setDisable(false);
+
+            	ColorProcesser cp = new ColorProcesser();
+            	int[][] pixels = cp.getPixelArray(image);
+            	LuvPixel[] luv = cp.getLuvArray(pixels);
+            	LuvPixel[] out = new LuvPixel[luv.length];
+
+            	int width = pixels.length;
+            	int height = pixels[0].length;
+
+            	float shift = 0;
+        		int iters = 0, maxIters = Integer.parseInt(iterationNumberBox.getText());
+        		int hrad = Integer.parseInt(spacialParameterBox.getText());
+        		int hcolor = Integer.parseInt(rangeParameterBox.getText());
+        		int pixelNumber = luv.length;
+            	updateProgress(0,  pixelNumber);
+        		// dla kazdego piksela
+        		for (int i = 0; i < pixelNumber; i++) {
+
+        			// pobierz aktualna pozycje piksela
+        			int xc = (int) luv[i].getPosition().getX();
+        			int yc = (int) luv[i].getPosition().getY();
+        			// miejsce na stare dane
+        			int xcOld, ycOld;
+        			float LcOld, UcOld, VcOld;
+        			// aktualna poyzcja i kolor
+        			Point3D color = luv[i].getColor();
+        			float Lc = (float)color.getX();
+        			float Uc = (float)color.getY();
+        			float Vc = (float)color.getZ();
+        			// licznik iteracji
+        			iters = 0;
+        			// mean-shiftowanie
+        			do {
+        				// zachowanie starych danych
+        				xcOld = xc; ycOld = yc;
+        				LcOld = Lc; UcOld = Uc; VcOld = Vc;
+        				// wartosci przesuniecia
+        				float mx = 0,  my = 0, mL = 0, mU = 0, mV = 0;
+        				int num = 0;
+        				// MAGIA
+        				for (int ry = -hrad; ry <= hrad; ry++) {
+        					int y2 = yc + ry;
+        					if (y2 >= 0 && y2 < height) {
+        						for (int rx = -hrad; rx <= hrad; rx++) {
+        							int x2 = xc + rx;
+        							if (x2 >= 0 && x2 < width && ry * ry + rx * rx <= hrad * hrad) {
+        								int index = y2 * width + x2;
+        								if (index >= luv.length)
+        									continue;
+        								try {
+        									color = luv[y2 * width + x2].getColor();
+        								} catch (Exception e){
+        									e.toString();
+        								}
+
+        								float L2 = (float) color.getX();
+        								float U2 = (float) color.getY();
+        								float V2 = (float) color.getZ();
+
+        								float dL = Lc - L2;
+        								float dU = Uc - U2;
+        								float dV = Vc - V2;
+
+        								if (dL*dL + dU*dU + dV * dV <= hcolor * hcolor) {
+        									mx += x2;
+        									my += y2;
+        									mL += L2;
+        									mU += U2;
+        									mV += V2;
+        									num++;
+        								}
+
+        							}
+        						}
+        					}
+        				}
+        				float num_ = 1f / num;
+        				Lc = mL * num_;
+        				Uc = mU * num_;
+        				Vc = mV * num_;
+        				xc = (int) (mx * num_ + 0.5);
+        				yc = (int) (my * num_ + 0.5);
+        				int dx = xc - xcOld;
+        				int dy = yc - ycOld;
+        				float dL = Lc-LcOld;
+        				float dU = Uc-UcOld;
+        				float dV = Vc-VcOld;
+
+        				shift = dx*dx+dy*dy+dL*dL+dU*dU+dV*dV;
+        				iters++;
+
+        			} while (shift > 3 && iters < maxIters);
+
+        			out[i] = new LuvPixel(luv[i].getPosition(), new Point3D(Lc, Uc, Vc));
+        			updateProgress(i, pixelNumber);
+        		}
+
+        		int[][] rgb = cp.getRgbArray(out, width);
+        		WritableImage filteredImage = new WritableImage(width, height);
+        		PixelWriter pw = filteredImage.getPixelWriter();
+        		for (int i = 0; i < width; i++) {
+        			for (int j = 0; j < height; j++) {
+        				pw.setArgb(i, j, rgb[i][j]);
+        			}
+        		}
+
+            	rightImageView.setImage(filteredImage);
+        		runBtn.setDisable(false);
+                return null;
+            }
+        };
+    }
 
 }
