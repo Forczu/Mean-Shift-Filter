@@ -13,6 +13,7 @@ import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.concurrent.Task;
+import javafx.concurrent.WorkerStateEvent;
 import javafx.embed.swing.SwingFXUtils;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
@@ -30,6 +31,8 @@ import javafx.scene.image.PixelWriter;
 import javafx.scene.image.WritableImage;
 import javafx.scene.layout.AnchorPane;
 import javafx.stage.FileChooser;
+import mean.shift.MeanShiftFilter;
+import mean.shift.kernel.Kernel;
 import mean.shift.kernel.RectangularKernel;
 import mean.shift.processing.ColorProcesser;
 import mean.shift.processing.LuvPixel;
@@ -82,8 +85,6 @@ public class WindowController implements Initializable {
 
     private String imagePath = null;
 
-    private Task<Void> filterWorker;
-
     //Event handlers
 
     @FXML
@@ -99,7 +100,9 @@ public class WindowController implements Initializable {
     }
 
     //Methods
-
+    /**
+     * Otwiera nowy rysunek.
+     */
     public void openImage()
     {
     	FileChooser fileChooser = new FileChooser();
@@ -116,6 +119,9 @@ public class WindowController implements Initializable {
         }
     }
 
+    /**
+     * Zapisuje przefiltrowany rysunek.
+     */
     public void saveImage()
     {
     	try {
@@ -135,8 +141,54 @@ public class WindowController implements Initializable {
 		}
     }
 
+    /**
+     * Konfiguruje wszystkie elementy okna.
+     */
 	public void initialize(URL location, ResourceBundle resources) {
 
+		applyCSS();
+		configureMainSplitPane();
+		configureAsNumericBox(spacialParameterBox);
+		configureAsNumericBox(rangeParameterBox);
+		configureAsNumericBox(iterationNumberBox);
+		configureAsNumericBox(convergenceBox);
+		configureRunButton();
+		metricsBox.setItems(FXCollections.observableArrayList("Euklidesowa", "Manhattan"));
+		metricsBox.getSelectionModel().selectFirst();
+	}
+
+	/**
+	 * Umozliwia przyciskowi "uruchom" wykonanie zadania filtrowania.
+	 * Po wykonaniu zadania rysunek wyjsciowy jest wyswietlony po prawej stronie.
+	 */
+	private void configureRunButton() {
+		runBtn.setOnAction(new EventHandler<ActionEvent>() {
+			public void handle(ActionEvent event) {
+            	Image image = leftImageView.getImage();
+            	if (image == null) return;
+				runBtn.setDisable(true);
+                Task<Image> meanShift = createMeanShiftFilter();
+                meanShift.addEventHandler(WorkerStateEvent.WORKER_STATE_SUCCEEDED,
+                	    new EventHandler<WorkerStateEvent>() {
+                    @Override
+                    public void handle(WorkerStateEvent t) {
+                    	Image filteredImage = meanShift.getValue();
+                    	rightImageView.setImage(filteredImage);
+                    	rightImageBtn.setDisable(false);
+                		runBtn.setDisable(false);
+                    }
+                });
+                progressBar.progressProperty().bind(meanShift.progressProperty());
+                new Thread(meanShift).start();
+            }
+		});
+	}
+
+	/**
+	 * Konfiguruje panel rozdzielny by dostosowywal rozmiar pol
+	 * z rysunkami do aktualnego rozmiaru okna.
+	 */
+	private void configureMainSplitPane() {
 		final ChangeListener<Number> listener = new ChangeListener<Number>() {
 			final Timer timer = new Timer();
 			TimerTask task = null;
@@ -165,29 +217,12 @@ public class WindowController implements Initializable {
 		// zablokowanie ruchu krawedzi oddzielajacych rysunki
 		mainSplitPane.lookupAll(".split-pane-divider").stream()
         	.forEach(div ->  div.setMouseTransparent(true));
-
-		applyCSS();
-
-		configureAsNumericBox(spacialParameterBox);
-		configureAsNumericBox(rangeParameterBox);
-		configureAsNumericBox(iterationNumberBox);
-		configureAsNumericBox(convergenceBox);
-
-		runBtn.setOnAction(new EventHandler<ActionEvent>() {
-			public void handle(ActionEvent event) {
-            	Image image = leftImageView.getImage();
-            	if (image == null) return;
-				runBtn.setDisable(true);
-                filterWorker = createFilterWorker();
-                progressBar.progressProperty().bind(filterWorker.progressProperty());
-                new Thread(filterWorker).start();
-            }
-		});
-
-		metricsBox.setItems(FXCollections.observableArrayList("Euklidesowa", "Manhattan"));
-		metricsBox.getSelectionModel().selectFirst();
 	}
 
+	/**
+	 * Konfiguruje pole tesktowe tak, by akceptowalo wylacznie liczby.
+	 * @param text pole tekstowe
+	 */
 	private void configureAsNumericBox(TextField text) {
 		text.focusedProperty().addListener((arg0, oldValue, newValue) -> {
 	        if (!newValue) {
@@ -205,130 +240,22 @@ public class WindowController implements Initializable {
 		rightImageBtn.getStyleClass().add("button-metallic-grey");
 	}
 
-	protected Task<Void> createFilterWorker() {
-        return new Task<Void>() {
-            @Override
-            protected Void call() {
-            	// wywolanie funkcji filtru mean-shift
-            	if (imagePath == null)
-            		return null;
-            	Image image = new Image(imagePath);
-
-            	ColorProcesser cp = new ColorProcesser();
-            	int[][] pixels = cp.getPixelArray(image);
-            	LuvPixel[] luv = cp.getLuvArray(pixels);
-            	LuvPixel[] out = new LuvPixel[luv.length];
-
-            	int width = pixels.length;
-            	int height = pixels[0].length;
-
-            	double shift = 0;
-        		int iters = 0, maxIters = Integer.parseInt(iterationNumberBox.getText());
-        		int hrad = Integer.parseInt(spacialParameterBox.getText());
-        		int hcolor = Integer.parseInt(rangeParameterBox.getText());
-        		int minShift = Integer.parseInt(convergenceBox.getText());
-        		int pixelNumber = luv.length;
-            	updateProgress(0,  pixelNumber);
-
-				RectangularKernel kernel = new RectangularKernel();
-				Metrics metrics = MetricsFactory.getMetrics(metricsBox.getValue());
-
-        		// dla kazdego piksela
-        		for (int i = 0; i < pixelNumber; i++) {
-
-        			// pobierz aktualna pozycje piksela
-        			int xc = (int) luv[i].getPosition().getX();
-        			int yc = (int) luv[i].getPosition().getY();
-        			// miejsce na stare dane
-        			int xcOld, ycOld;
-        			float LcOld, UcOld, VcOld;
-        			// aktualna poyzcja i kolor
-        			Point3D color = luv[i].getColor();
-        			float Lc = (float)color.getX();
-        			float Uc = (float)color.getY();
-        			float Vc = (float)color.getZ();
-        			// licznik iteracji
-        			iters = 0;
-        			// mean-shiftowanie
-        			do {
-        				// zachowanie starych danych
-        				xcOld = xc; ycOld = yc;
-        				LcOld = Lc; UcOld = Uc; VcOld = Vc;
-        				// wartosci przesuniecia
-        				float mx = 0,  my = 0, mL = 0, mU = 0, mV = 0;
-        				double pointNum = 0.0, colorNum = 0.0;
-        				// MEAN SHIFT (17)
-        				for (int ry = -hrad; ry <= hrad; ry++) {
-        					int y2 = yc + ry;
-        					if (y2 >= 0 && y2 < height) {
-        						for (int rx = -hrad; rx <= hrad; rx++) {
-        							int x2 = xc + rx;
-        							if (x2 >= 0 && x2 < width) {
-        								double pointDistance = metrics.getDistance(ry, rx);
-        								if (pointDistance <= hrad) {
-        									color = luv[y2 * width + x2].getColor();
-
-            								float L2 = (float) color.getX();
-            								float U2 = (float) color.getY();
-            								float V2 = (float) color.getZ();
-
-            								double dL = Lc - L2;
-            								double dU = Uc - U2;
-            								double dV = Vc - V2;
-
-            								double colorDistance = metrics.getDistance(dL, dU, dV);
-            								if (colorDistance <= hcolor) {
-            									double pointKernel = kernel.gFunction(Math.pow(pointDistance / hrad, 2));
-            									mx += x2 * pointKernel;
-            									my += y2 * pointKernel;
-            									pointNum += pointKernel;
-            									double colorKernel = kernel.gFunction(Math.pow(colorDistance / hcolor, 2));
-            									mL += L2 * colorKernel;
-            									mU += U2 * colorKernel;
-            									mV += V2 * colorKernel;
-            									colorNum += colorKernel;
-            								}
-        								}
-        							}
-        						}
-        					}
-        				}
-        				// nowe przesuniecie okna
-        				xc = (int) (mx * (1.0 / pointNum) + 0.5);
-        				yc = (int) (my * (1.0 / pointNum) + 0.5);
-        				Lc = (float) (mL * (1.0 / colorNum));
-        				Uc = (float) (mU * (1.0 / colorNum));
-        				Vc = (float) (mV * (1.0 / colorNum));
-        				// mean-shift
-        				int dx = xc - xcOld;
-        				int dy = yc - ycOld;
-        				float dL = Lc - LcOld;
-        				float dU = Uc - UcOld;
-        				float dV = Vc - VcOld;
-
-        				shift = metrics.getDistance(dx, dy, dL, dU, dV);
-        				iters++;
-        			} while (shift > minShift && iters < maxIters);
-
-        			out[i] = new LuvPixel(luv[i].getPosition(), new Point3D(Lc, Uc, Vc));
-        			updateProgress(i, pixelNumber);
-        		}
-
-        		int[][] rgb = cp.getRgbArray(out, width);
-        		WritableImage filteredImage = new WritableImage(width, height);
-        		PixelWriter pw = filteredImage.getPixelWriter();
-        		for (int i = 0; i < width; i++) {
-        			for (int j = 0; j < height; j++) {
-        				pw.setArgb(i, j, rgb[i][j]);
-        			}
-        		}
-
-            	rightImageView.setImage(filteredImage);
-            	rightImageBtn.setDisable(false);
-        		runBtn.setDisable(false);
-                return null;
-            }
-        };
+	/**
+	 * Utworzenie zadania do wykonania filtru Mean Shift
+	 * z pobranymi parametrami na wskazanym rysunku.
+	 * @return zadanie mean shift
+	 */
+	protected Task<Image> createMeanShiftFilter() {
+    	if (imagePath == null)
+    		return null;
+    	Image image = new Image(imagePath);
+    	Kernel kernel = new RectangularKernel();
+    	int spatialPar = Integer.parseInt(spacialParameterBox.getText());
+    	int rangePar = Integer.parseInt(rangeParameterBox.getText());
+    	int maxIters = Integer.parseInt(iterationNumberBox.getText());
+    	int minShift = Integer.parseInt(convergenceBox.getText());
+    	Metrics metrics = MetricsFactory.getMetrics(metricsBox.getValue());
+		return new MeanShiftFilter(image, kernel, spatialPar, rangePar, maxIters, minShift, metrics);
     }
 
 }
