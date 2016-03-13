@@ -1,6 +1,5 @@
 package mean.shift.controller;
 
-import java.awt.MenuItem;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
@@ -12,6 +11,7 @@ import javax.imageio.ImageIO;
 
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
+import javafx.collections.FXCollections;
 import javafx.concurrent.Task;
 import javafx.embed.swing.SwingFXUtils;
 import javafx.event.ActionEvent;
@@ -20,6 +20,7 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.geometry.Point3D;
 import javafx.scene.control.Button;
+import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.TextField;
@@ -31,8 +32,9 @@ import javafx.scene.layout.AnchorPane;
 import javafx.stage.FileChooser;
 import mean.shift.kernel.RectangularKernel;
 import mean.shift.processing.ColorProcesser;
-import mean.shift.processing.EuclideanMetrics;
 import mean.shift.processing.LuvPixel;
+import mean.shift.processing.Metrics;
+import mean.shift.processing.MetricsFactory;
 
 public class WindowController implements Initializable {
 
@@ -70,8 +72,14 @@ public class WindowController implements Initializable {
     private TextField iterationNumberBox;
 
     @FXML
+    private TextField convergenceBox;
+
+    @FXML
     private ProgressBar progressBar;
-    
+
+    @FXML
+    private ChoiceBox<String> metricsBox;
+
     private String imagePath = null;
 
     private Task<Void> filterWorker;
@@ -80,7 +88,7 @@ public class WindowController implements Initializable {
 
     @FXML
     protected void handleLeftImageButtonAction(ActionEvent event) {
-    	
+
     	openImage();
     }
 
@@ -89,7 +97,7 @@ public class WindowController implements Initializable {
 
     	saveImage();
     }
-    
+
     //Methods
 
     public void openImage()
@@ -107,7 +115,7 @@ public class WindowController implements Initializable {
         	leftImageView.setImage(new Image(imagePath));
         }
     }
-    
+
     public void saveImage()
     {
     	try {
@@ -126,7 +134,7 @@ public class WindowController implements Initializable {
 			e.printStackTrace();
 		}
     }
-    
+
 	public void initialize(URL location, ResourceBundle resources) {
 
 		final ChangeListener<Number> listener = new ChangeListener<Number>() {
@@ -163,6 +171,7 @@ public class WindowController implements Initializable {
 		configureAsNumericBox(spacialParameterBox);
 		configureAsNumericBox(rangeParameterBox);
 		configureAsNumericBox(iterationNumberBox);
+		configureAsNumericBox(convergenceBox);
 
 		runBtn.setOnAction(new EventHandler<ActionEvent>() {
 			public void handle(ActionEvent event) {
@@ -174,12 +183,15 @@ public class WindowController implements Initializable {
                 new Thread(filterWorker).start();
             }
 		});
+
+		metricsBox.setItems(FXCollections.observableArrayList("Euklidesowa", "Manhattan"));
+		metricsBox.getSelectionModel().selectFirst();
 	}
 
 	private void configureAsNumericBox(TextField text) {
 		text.focusedProperty().addListener((arg0, oldValue, newValue) -> {
 	        if (!newValue) {
-	            if(!text.getText().matches("[1-9][0-9]*")){
+	            if(!text.getText().matches(NUMERIC_PATTERN)){
 	            	text.setText("1");
 	            }
 	        }
@@ -198,9 +210,7 @@ public class WindowController implements Initializable {
             @Override
             protected Void call() {
             	// wywolanie funkcji filtru mean-shift
-            	if (imagePath == null || !spacialParameterBox.getText().matches(NUMERIC_PATTERN)
-            			|| !rangeParameterBox.getText().matches(NUMERIC_PATTERN)
-            			|| !iterationNumberBox.getText().matches(NUMERIC_PATTERN))
+            	if (imagePath == null)
             		return null;
             	Image image = new Image(imagePath);
 
@@ -212,12 +222,17 @@ public class WindowController implements Initializable {
             	int width = pixels.length;
             	int height = pixels[0].length;
 
-            	float shift = 0;
+            	double shift = 0;
         		int iters = 0, maxIters = Integer.parseInt(iterationNumberBox.getText());
         		int hrad = Integer.parseInt(spacialParameterBox.getText());
         		int hcolor = Integer.parseInt(rangeParameterBox.getText());
+        		int minShift = Integer.parseInt(convergenceBox.getText());
         		int pixelNumber = luv.length;
             	updateProgress(0,  pixelNumber);
+
+				RectangularKernel kernel = new RectangularKernel();
+				Metrics metrics = MetricsFactory.getMetrics(metricsBox.getValue());
+
         		// dla kazdego piksela
         		for (int i = 0; i < pixelNumber; i++) {
 
@@ -241,20 +256,15 @@ public class WindowController implements Initializable {
         				LcOld = Lc; UcOld = Uc; VcOld = Vc;
         				// wartosci przesuniecia
         				float mx = 0,  my = 0, mL = 0, mU = 0, mV = 0;
-        				int num = 0;
         				double pointNum = 0.0, colorNum = 0.0;
-        				// MAGIA
-
-        				// MEAN SHIF (17)
-        				RectangularKernel kernel = new RectangularKernel();
-        				EuclideanMetrics distance = new EuclideanMetrics();
+        				// MEAN SHIFT (17)
         				for (int ry = -hrad; ry <= hrad; ry++) {
         					int y2 = yc + ry;
         					if (y2 >= 0 && y2 < height) {
         						for (int rx = -hrad; rx <= hrad; rx++) {
         							int x2 = xc + rx;
         							if (x2 >= 0 && x2 < width) {
-        								double pointDistance = distance.getDistance(ry, rx);
+        								double pointDistance = metrics.getDistance(ry, rx);
         								if (pointDistance <= hrad) {
         									color = luv[y2 * width + x2].getColor();
 
@@ -266,7 +276,7 @@ public class WindowController implements Initializable {
             								double dU = Uc - U2;
             								double dV = Vc - V2;
 
-            								double colorDistance = distance.getDistance(dL, dU, dV);
+            								double colorDistance = metrics.getDistance(dL, dU, dV);
             								if (colorDistance <= hcolor) {
             									double pointKernel = kernel.gFunction(Math.pow(pointDistance / hrad, 2));
             									mx += x2 * pointKernel;
@@ -283,22 +293,22 @@ public class WindowController implements Initializable {
         						}
         					}
         				}
-
+        				// nowe przesuniecie okna
         				xc = (int) (mx * (1.0 / pointNum) + 0.5);
         				yc = (int) (my * (1.0 / pointNum) + 0.5);
         				Lc = (float) (mL * (1.0 / colorNum));
         				Uc = (float) (mU * (1.0 / colorNum));
         				Vc = (float) (mV * (1.0 / colorNum));
-
+        				// mean-shift
         				int dx = xc - xcOld;
         				int dy = yc - ycOld;
         				float dL = Lc - LcOld;
         				float dU = Uc - UcOld;
         				float dV = Vc - VcOld;
 
-        				shift = dx*dx+dy*dy+dL*dL+dU*dU+dV*dV;
+        				shift = metrics.getDistance(dx, dy, dL, dU, dV);
         				iters++;
-        			} while (shift > 3 && iters < maxIters);
+        			} while (shift > minShift && iters < maxIters);
 
         			out[i] = new LuvPixel(luv[i].getPosition(), new Point3D(Lc, Uc, Vc));
         			updateProgress(i, pixelNumber);
