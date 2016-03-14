@@ -82,7 +82,10 @@ public class WindowController implements Initializable {
 
     @FXML
     private ChoiceBox<String> metricsBox;
-
+    
+    @FXML 
+    private javafx.scene.control.MenuItem saveMenuItem;
+    
     private String imagePath = null;
 
     //Event handlers
@@ -98,7 +101,24 @@ public class WindowController implements Initializable {
 
     	saveImage();
     }
+    
+    @FXML
+    public void handleOpenMenuItem(ActionEvent event) {
+    	
+    	openImage();
+    }
 
+    @FXML
+    public void handleSaveMenuItem(ActionEvent event) {
+    	
+    	saveImage();
+    }
+    
+    @FXML
+    public void handleCloseMenuItem(ActionEvent event) {
+        System.exit(0);
+    }
+    
     //Methods
     /**
      * Otwiera nowy rysunek.
@@ -176,6 +196,7 @@ public class WindowController implements Initializable {
                     	rightImageView.setImage(filteredImage);
                     	rightImageBtn.setDisable(false);
                 		runBtn.setDisable(false);
+                		saveMenuItem.setDisable(false);
                     }
                 });
                 progressBar.progressProperty().bind(meanShift.progressProperty());
@@ -233,6 +254,9 @@ public class WindowController implements Initializable {
 	    });
 	}
 
+	/*
+	 * Dodaje style do poszczególnych kontrolek widoku.
+	 */
 	private void applyCSS() {
 
 		leftImageBtn.getStyleClass().add("button-metallic-grey");

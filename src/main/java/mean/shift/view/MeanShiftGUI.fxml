@@ -10,6 +10,11 @@
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.VBox?>
+<?import javafx.scene.control.Menu?>
+<?import javafx.scene.control.MenuBar?>
+<?import javafx.scene.control.MenuItem?>
+<?import javafx.scene.control.SeparatorMenuItem?>
+<?import javafx.scene.layout.BorderPane?>
 
 <AnchorPane fx:id="mainPane" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minHeight="-Infinity" minWidth="-Infinity" prefHeight="500.0" prefWidth="800.0" xmlns="http://javafx.com/javafx/8.0.65" xmlns:fx="http://javafx.com/fxml/1" fx:controller="mean.shift.controller.WindowController">
    <children>
@@ -52,5 +57,30 @@
             </AnchorPane>
         </items>
       </SplitPane>
+      
+      <MenuBar AnchorPane.rightAnchor="0.0" AnchorPane.leftAnchor="0.0">
+        <menus>
+          <Menu mnemonicParsing="false" text="File">
+            <items>
+              <MenuItem text="Open" onAction="#handleOpenMenuItem" />
+              <MenuItem text="Save" onAction="#handleSaveMenuItem" disable="true" fx:id="saveMenuItem" />
+               <SeparatorMenuItem />
+              <MenuItem mnemonicParsing="false" text="Close" onAction="#handleCloseMenuItem" />
+            </items>
+          </Menu>
+          <Menu mnemonicParsing="false" text="Edit">
+            <items>
+              <MenuItem mnemonicParsing="false" text="Delete" />
+            </items>
+          </Menu>
+          <Menu mnemonicParsing="false" text="Help">
+            <items>
+              <MenuItem mnemonicParsing="false" text="About" />
+            </items>
+          </Menu>
+        </menus>
+      </MenuBar>
+      
    </children>
 </AnchorPane>
+

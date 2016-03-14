@@ -19,31 +19,7 @@ public class Main extends Application {
     public void start(Stage primaryStage) {
         this.primaryStage = primaryStage;
         this.primaryStage.setTitle("Mean Shift");
-        initRootLayout();
         showPersonOverview();
-    }
-
-    /**
-     * Initializes the root layout.
-     */
-    public void initRootLayout() {
-        try {
-            // Load root layout from fxml file.
-            FXMLLoader loader = new FXMLLoader();
-            
-            loader.setLocation(Main.class.getResource("view/RootPane.fxml"));
-            rootLayout = (BorderPane) loader.load();
-
-            // Show the scene containing the root layout.
-            Scene scene = new Scene(rootLayout);
-            primaryStage.setScene(scene);
-            primaryStage.show();
-            
-            scene.getStylesheets().add(this.getClass().getResource("./view/css/application.css").toExternalForm());   		
-            
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
     }
 
     /**
@@ -56,8 +32,13 @@ public class Main extends Application {
             loader.setLocation(Main.class.getResource("view/MeanShiftGUI.fxml"));
             AnchorPane personOverview = (AnchorPane) loader.load();
 
-            // Set person overview into the center of root layout.
-            rootLayout.setCenter(personOverview);
+            // Show the scene containing the root layout.
+            Scene scene = new Scene(personOverview);
+            primaryStage.setScene(scene);
+            primaryStage.show();
+         
+            scene.getStylesheets().add(this.getClass().getResource("./view/css/application.css").toExternalForm());   		
+            
         } catch (IOException e) {
             e.printStackTrace();
         }
