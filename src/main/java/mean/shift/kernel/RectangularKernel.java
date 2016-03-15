@@ -1,6 +1,11 @@
 package mean.shift.kernel;
 import java.lang.Math;
+
 public class RectangularKernel implements Kernel {
+
+	public static Kernel getInstance() {
+		return new RectangularKernel();
+	}
 
 	@Override
 	public float calculate(float distance, int range) {

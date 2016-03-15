@@ -34,6 +34,7 @@ import javafx.stage.FileChooser;
 import mean.shift.filter.MeanShiftFilter;
 import mean.shift.kernel.GaussianKernel;
 import mean.shift.kernel.Kernel;
+import mean.shift.kernel.KernelFactory;
 import mean.shift.kernel.RectangularKernel;
 import mean.shift.processing.ColorProcesser;
 import mean.shift.processing.LuvPixel;
@@ -83,6 +84,9 @@ public class WindowController implements Initializable {
 
     @FXML
     private ChoiceBox<String> metricsBox;
+    
+    @FXML
+    private ChoiceBox<String> kernelBox;
     
     @FXML 
     private javafx.scene.control.MenuItem saveMenuItem;
@@ -174,8 +178,11 @@ public class WindowController implements Initializable {
 		configureAsNumericBox(iterationNumberBox);
 		configureAsNumericBox(convergenceBox);
 		configureRunButton();
+		kernelBox.setItems(FXCollections.observableArrayList("Gaussa", "Prostok¹tny"));
+		kernelBox.getSelectionModel().selectFirst();
 		metricsBox.setItems(FXCollections.observableArrayList("Euklidesowa", "Manhattan"));
 		metricsBox.getSelectionModel().selectFirst();
+		
 	}
 
 	/**
@@ -274,12 +281,12 @@ public class WindowController implements Initializable {
     	if (imagePath == null)
     		return null;
     	Image image = new Image(imagePath);
-    	Kernel kernel = new GaussianKernel();
     	int spatialPar = Integer.parseInt(spacialParameterBox.getText());
     	int rangePar = Integer.parseInt(rangeParameterBox.getText());
     	int maxIters = Integer.parseInt(iterationNumberBox.getText());
     	int minShift = Integer.parseInt(convergenceBox.getText());
     	Metrics metrics = MetricsFactory.getMetrics(metricsBox.getValue());
+    	Kernel kernel = KernelFactory.getKernel(kernelBox.getValue());
 		return new MeanShiftFilter(image, kernel, spatialPar, rangePar, maxIters, minShift, metrics);
     }
 

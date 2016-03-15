@@ -40,6 +40,8 @@
                         <TextField id="convergenceBox" fx:id="convergenceBox" maxWidth="-Infinity" prefWidth="140.0" text="2" />
                         <Label text="Metryka" />
                         <ChoiceBox fx:id="metricsBox" maxWidth="-Infinity" prefWidth="140.0" />
+                        <Label text="Kernel" />
+                        <ChoiceBox fx:id="kernelBox" maxWidth="-Infinity" prefWidth="140.0" />
                      </children>
                      <opaqueInsets>
                         <Insets />
