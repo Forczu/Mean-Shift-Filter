@@ -5,7 +5,6 @@ import java.util.HashSet;
 import java.util.List;
 
 import javafx.concurrent.Task;
-import javafx.geometry.Point3D;
 import javafx.scene.image.Image;
 import javafx.scene.image.PixelWriter;
 import javafx.scene.image.WritableImage;
@@ -49,11 +48,16 @@ public class MeanShiftFilter extends Task<Image> {
 		int[][] pixels = colorProcesser.getPixelArray(image);
 		LuvPixel[] luv = colorProcesser.getLuvArray(pixels);
 		LuvPixel[] outImage = meanShiftAlgorithm(pixels, luv);
-		int width = pixels.length;
-		int height = pixels[0].length;
-
 
 		segmentationAlgorithm(pixels,luv,outImage);
+		Image filteredImage = convertPixelToImage(pixels,colorProcesser,outImage);	
+		return filteredImage;
+	}
+
+
+	private Image convertPixelToImage(int[][] pixels,ColorProcesser colorProcesser,LuvPixel[] outImage) {
+		int width = pixels.length;
+		int height = pixels[0].length;
 		int[][] rgb = colorProcesser.getRgbArray(outImage, width);
 		WritableImage filteredImage = new WritableImage(width, height);
 		PixelWriter pixelWriter = filteredImage.getPixelWriter();
@@ -64,7 +68,6 @@ public class MeanShiftFilter extends Task<Image> {
 		}
 		return filteredImage;
 	}
-
 
 	LuvPixel[] meanShiftAlgorithm(int[][] pixels,LuvPixel[] luv){
 		LuvPixel[] outImage = new LuvPixel[luv.length];

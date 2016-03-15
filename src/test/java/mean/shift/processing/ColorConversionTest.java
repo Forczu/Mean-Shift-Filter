@@ -1,3 +1,4 @@
+package mean.shift.processing;
 import static org.junit.Assert.*;
 
 import org.junit.Before;
