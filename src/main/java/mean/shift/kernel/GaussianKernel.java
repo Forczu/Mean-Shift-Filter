@@ -1,17 +1,17 @@
 package mean.shift.kernel;
-
+import java.lang.Math;
 public class GaussianKernel implements Kernel{
 
 	@Override
-	public double calculate(double x) {
+	public double calculate(double distance, int range) {
 		// TODO Auto-generated method stub
-		return 0;
+		return Math.exp(-0.5*Math.pow(distance/range, 2));
 	}
 
 	@Override
-	public double gFunction(double x) {
+	public double gFunction(double distance, int range) {
 		// TODO Auto-generated method stub
-		return 0;
+		return calculate(distance, range);
 	}
 
 }

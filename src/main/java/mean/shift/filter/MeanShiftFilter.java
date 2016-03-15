@@ -43,11 +43,30 @@ public class MeanShiftFilter extends Task<Image> {
 	@Override
 	protected Image call() {
 
+		
 		ColorProcesser colorProcesser = new ColorProcesser();
 		int[][] pixels = colorProcesser.getPixelArray(image);
 		LuvPixel[] luv = colorProcesser.getLuvArray(pixels);
+		LuvPixel[] outImage = meanShiftAlgorithm(pixels, luv);
+		int width = pixels.length;
+		int height = pixels[0].length;
+		
+		
+		segmentationAlgorithm(pixels,luv,outImage);
+		int[][] rgb = colorProcesser.getRgbArray(outImage, width);
+		WritableImage filteredImage = new WritableImage(width, height);
+		PixelWriter pixelWriter = filteredImage.getPixelWriter();
+		for (int i = 0; i < width; i++) {
+			for (int j = 0; j < height; j++) {
+				pixelWriter.setArgb(i, j, rgb[i][j]);
+			}
+		}
+		return filteredImage;
+	}
+	
+	
+	LuvPixel[] meanShiftAlgorithm(int[][] pixels,LuvPixel[] luv){
 		LuvPixel[] outImage = new LuvPixel[luv.length];
-
 		int width = pixels.length;
 		int height = pixels[0].length;
 
@@ -106,11 +125,11 @@ public class MeanShiftFilter extends Task<Image> {
 
 									double colorDistance = metrics.getDistance(dL, dU, dV);
 									if (colorDistance <= hcolor) {
-										double pointKernelWeight = kernel.gFunction(Math.pow(pointDistance / hrad, 2));
+										double pointKernelWeight = kernel.gFunction(pointDistance,hrad);
 										windowShiftX += x2 * pointKernelWeight;
 										windowShiftY += y2 * pointKernelWeight;
 										pointNum += pointKernelWeight;
-										double colorKernelWeight = kernel.gFunction(Math.pow(colorDistance / hcolor, 2));
+										double colorKernelWeight = kernel.gFunction(colorDistance,hcolor);
 										pointColorShiftL += L2 * colorKernelWeight;
 										pointColorShiftU += U2 * colorKernelWeight;
 										pointColorShiftV += V2 * colorKernelWeight;
@@ -142,41 +161,48 @@ public class MeanShiftFilter extends Task<Image> {
 			updateProgress(i, pixelNumber);
 
 		}
-
-		// Segmentacja
+		return outImage;
+	}
+	
+	void segmentationAlgorithm(int[][] pixels,LuvPixel[] luvInputImage,LuvPixel[] luvOutputImage){
+		int width = pixels.length;
+		int height = pixels[0].length;
+		int pixelRange = 3;
+		int colorRange = 3;
+		int pixelNumber = luvInputImage.length;
 		List<HashSet<LuvPixel>> clusters = new ArrayList<>();
 
 		for (int i = 0; i < pixelNumber; i++) {
-			int xPixel = (int) outImage[i].getPosition().getX();
-			int yPixel = (int) outImage[i].getPosition().getY();
+			int xPixel = (int) luvOutputImage[i].getPosition().getX();
+			int yPixel = (int) luvOutputImage[i].getPosition().getY();
 			HashSet<LuvPixel> actualCluster;
 			actualCluster = null;
-			Point3D actualPixelColor = outImage[i].getColor();
+			Point3D actualPixelColor = luvOutputImage[i].getColor();
 
 			for (HashSet<LuvPixel> cluster : clusters) {
-				if (cluster.contains(outImage[i])) {
+				if (cluster.contains(luvOutputImage[i])) {
 					actualCluster = cluster;
 					break;
 				}
 			}
 			if (actualCluster == null) {
 				HashSet<LuvPixel> cluster = new HashSet<LuvPixel>();
-				cluster.add(outImage[i]);
+				cluster.add(luvOutputImage[i]);
 				clusters.add(cluster);
 				actualCluster = cluster;
 			}
 
-			for (int yDistance = -hrad; yDistance <= hrad; yDistance++) {
+			for (int yDistance = -pixelRange; yDistance <= pixelRange; yDistance++) {
 				int pixelPositionYInWindow = countCheckedPixelPosition(yPixel, yDistance);
 				if (pixelInImage(pixelPositionYInWindow, height)) {
-					for (int xDistance = -hrad; xDistance <= hrad; xDistance++) {
+					for (int xDistance = -pixelRange; xDistance <= pixelRange; xDistance++) {
 						int pixelPositionXInWindow = countCheckedPixelPosition(xPixel, xDistance);
 						if (pixelInImage(pixelPositionXInWindow, width)) {
-							if (pixelInSpatialDistance(xDistance, yDistance, hrad)) {
+							if (pixelInSpatialDistance(xDistance, yDistance, pixelRange)) {
 								int pixelIndex = pixelPositionYInWindow * width + pixelPositionXInWindow;
-								Point3D color = outImage[pixelIndex].getColor();
-								if (pixelInColorDistance(actualPixelColor, color, hcolor))
-									actualCluster.add(outImage[pixelIndex]);
+								Point3D color = luvOutputImage[pixelIndex].getColor();
+								if (pixelInColorDistance(actualPixelColor, color, colorRange))
+									actualCluster.add(luvOutputImage[pixelIndex]);
 							}
 						}
 
@@ -184,36 +210,39 @@ public class MeanShiftFilter extends Task<Image> {
 				}
 			}
 		}
-
-		// Sprawdzanie iloœci elementów w klastrach
+		coloringPixelsInClusters(clusters);
 		deletePixelsFromSmallClusters(clusters);
-		// Koniec segmentacji
-		int[][] rgb = colorProcesser.getRgbArray(outImage, width);
-		WritableImage filteredImage = new WritableImage(width, height);
-		PixelWriter pixelWriter = filteredImage.getPixelWriter();
-		for (int i = 0; i < width; i++) {
-			for (int j = 0; j < height; j++) {
-				pixelWriter.setArgb(i, j, rgb[i][j]);
-			}
-		}
-		return filteredImage;
 	}
 
-	int countCheckedPixelPosition(int actualPixelOneDimensionPosition, int distanceFromActualPixel) {
+	private void coloringPixelsInClusters(List<HashSet<LuvPixel>> clusters) {
+		Point3D color;
+		for(HashSet<LuvPixel> cluster:clusters){
+			color = null;
+			for(LuvPixel luvPixel: cluster){
+				if(color == null){
+					color = luvPixel.getColor();
+				}
+				luvPixel.setColor(color);
+			}
+		}
+		
+	}
+
+	private int countCheckedPixelPosition(int actualPixelOneDimensionPosition, int distanceFromActualPixel) {
 		int pixelPosition = actualPixelOneDimensionPosition + distanceFromActualPixel;
 		return pixelPosition;
 	}
 
-	boolean pixelInImage(int pixelOneDimensionPosition, int range) {
+	private boolean pixelInImage(int pixelOneDimensionPosition, int range) {
 		return (pixelOneDimensionPosition >= 0 && pixelOneDimensionPosition < range);
 	}
 
-	boolean pixelInSpatialDistance(int xPixelPostion, int yPixelPosition, int distance) {
+	private boolean pixelInSpatialDistance(int xPixelPostion, int yPixelPosition, int distance) {
 		double pointDistance = metrics.getDistance(xPixelPostion, yPixelPosition);
 		return (pointDistance <= distance);
 	}
 
-	boolean pixelInColorDistance(Point3D actualColor, Point3D secondColor, int range) {
+	private boolean pixelInColorDistance(Point3D actualColor, Point3D secondColor, int range) {
 		double L2 = secondColor.getX();
 		double U2 = secondColor.getY();
 		double V2 = secondColor.getZ();
@@ -230,7 +259,7 @@ public class MeanShiftFilter extends Task<Image> {
 		return (colorDistance <= range);
 	}
 
-	void deletePixelsFromSmallClusters(List<HashSet<LuvPixel>> clusters) {
+	private void deletePixelsFromSmallClusters(List<HashSet<LuvPixel>> clusters) {
 		for (HashSet<LuvPixel> cluster : clusters) {
 			if (cluster.size() < 20) {
 				for (LuvPixel outPixel : cluster) {
