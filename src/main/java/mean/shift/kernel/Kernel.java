@@ -2,8 +2,8 @@ package mean.shift.kernel;
 
 public interface Kernel {
 
-	public double calculate(double x);
+	public double calculate(double distance, int range);
 
-	public double gFunction(double x);
+	public double gFunction(double distance, int range);
 
 }
