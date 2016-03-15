@@ -31,7 +31,7 @@ import javafx.scene.image.PixelWriter;
 import javafx.scene.image.WritableImage;
 import javafx.scene.layout.AnchorPane;
 import javafx.stage.FileChooser;
-import mean.shift.MeanShiftFilter;
+import mean.shift.filter.MeanShiftFilter;
 import mean.shift.kernel.Kernel;
 import mean.shift.kernel.RectangularKernel;
 import mean.shift.processing.ColorProcesser;
