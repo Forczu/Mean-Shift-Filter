@@ -17,8 +17,11 @@ public class ColorConversionTest {
 
 	@Test
 	public void rgbToLuvConversionTest() {
+		//Given
 		int pixel = 0xFF000000 | (255 /*red*/ << 16 ) | (255 /*green*/ <<8) | 0 /*blue*/;
+		//When
 		float[] luv = cp.rgbToLuv(pixel);
+		//Then
 		assertEquals(097.138, luv[0], 4);
 		assertEquals(007.702, luv[1], 4);
 		assertEquals(106.789, luv[2], 4);

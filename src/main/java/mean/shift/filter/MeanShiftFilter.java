@@ -4,6 +4,9 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javafx.concurrent.Task;
 import javafx.scene.image.Image;
 import javafx.scene.image.PixelWriter;
@@ -21,6 +24,8 @@ import mean.shift.processing.Metrics;
  */
 public class MeanShiftFilter extends Task<Image> {
 
+	private static Logger LOGGER = LoggerFactory.getLogger(MeanShiftFilter.class);
+	
 	protected Image image;
 	protected Kernel kernel;
 	protected int spatialPar;
@@ -43,13 +48,15 @@ public class MeanShiftFilter extends Task<Image> {
 	@Override
 	protected Image call() {
 
-
+		LOGGER.info("START MEAN SHIFT PROCESSING");
 		ColorProcesser colorProcesser = new ColorProcesser();
 		int[][] pixels = colorProcesser.getPixelArray(image);
 		LuvPixel[] luv = colorProcesser.getLuvArray(pixels);
+		LOGGER.info("START MEAN SHIFT ALGORITHM");
 		LuvPixel[] outImage = meanShiftAlgorithm(pixels, luv);
-
+		LOGGER.info("MEAN SHIFT ALGORITHM FINISHED AND START SEGMENTATION");
 		segmentationAlgorithm(pixels,luv,outImage);
+		LOGGER.info("SEGMENTATION FINISHED");
 		Image filteredImage = convertPixelToImage(pixels,colorProcesser,outImage);	
 		return filteredImage;
 	}
