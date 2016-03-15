@@ -3,12 +3,13 @@ package mean.shift;
 import java.io.IOException;
 
 import javafx.application.Application;
+import javafx.event.EventHandler;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
-import mean.shift.controller.WindowController;
+import javafx.stage.WindowEvent;
 
 public class Main extends Application {
 
@@ -42,6 +43,13 @@ public class Main extends Application {
         } catch (IOException e) {
             e.printStackTrace();
         }
+        
+        // Terminate JVM after closing application
+        primaryStage.setOnCloseRequest(new EventHandler<WindowEvent>() {
+            public void handle(WindowEvent we) {
+            	System.exit(0);
+            }
+        });
     }
 
     /**

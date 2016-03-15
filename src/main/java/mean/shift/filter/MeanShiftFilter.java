@@ -57,6 +57,9 @@ public class MeanShiftFilter extends Task<Image> {
 		int hcolor = rangePar;
 		int pixelNumber = luv.length;
 		updateProgress(0, pixelNumber);
+		
+		int threadsCount = Runtime.getRuntime().availableProcessors();
+		// TODO: przekazaæ fragment tablicy pikseli do ka¿dego w¹tku
 
 		// dla kazdego piksela
 		for (int i = 0; i < pixelNumber; i++) {
