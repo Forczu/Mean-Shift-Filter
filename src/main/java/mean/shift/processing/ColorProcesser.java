@@ -61,7 +61,7 @@ public class ColorProcesser {
 		double g = toPivotRgb(G);
 		double b = toPivotRgb(B);
 
-        // Observer. = 2ï¿½â€¹, Illuminant = D65
+        // Observer. = 2‹, Illuminant = D65
 		// RGB -> XYZ
 		double X = r * 0.4124 + g * 0.3576 + b * 0.1805;
 		double Y = r * 0.2126 + g * 0.7152 + b * 0.0722;
@@ -143,10 +143,10 @@ public class ColorProcesser {
 	public int[][] getRgbArray(LuvPixel[] luvArray, int width) {
 		int[][] rgbArray = new int[width][luvArray.length / width];
 		for (int i = 0; i < luvArray.length; i++) {
-			Point3D color = luvArray[i].getColor();
-			Point2D pos = luvArray[i].getPosition();
-			int argb = luvToRgb(new float[]{(float) color.getX(), (float) color.getY(), (float) color.getZ()});
-			rgbArray[(int)pos.getX()][(int)pos.getY()] = argb;
+			Position pos = luvArray[i].getPos();
+			Color color = luvArray[i].getColor();
+			int argb = luvToRgb(new float[]{color.l(), color.u(), color.v()});
+			rgbArray[(int)pos.x()][(int)pos.y()] = argb;
 		}
 		return rgbArray;
 	}

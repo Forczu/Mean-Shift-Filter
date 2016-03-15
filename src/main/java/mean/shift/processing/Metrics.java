@@ -9,6 +9,6 @@ public interface Metrics {
 	 * @param points punkty
 	 * @return dystans
 	 */
-	double getDistance(double... points);
+	float getDistance(float... points);
 
 }

@@ -1,53 +1,76 @@
 package mean.shift.processing;
 
-import javafx.geometry.Point2D;
-import javafx.geometry.Point3D;
-
 public class LuvPixel {
 
-	private Point2D position = null;
+	private Position pos = null;
 
-	private Point3D color = null;
+	private Color color = null;
 
-	public LuvPixel(Point2D position, Point3D color) {
-		this.position = position;
+	public LuvPixel(Position pos, Color color) {
+		this.pos = pos;
 		this.color = color;
 	}
 
 	public LuvPixel(int x, int y, float l, float u, float v) {
-		position = new Point2D(x, y);
-		color = new Point3D(l, u, v);
+		pos = Position.getInstance(x, y);
+		color = Color.getInstance(l, u, v);
 	}
 
 	public float getL() {
-		return (float)color.getX();
+		return color.l();
 	}
 
 	public float getU() {
-		return (float)color.getY();
+		return color.u();
 	}
 
 	public float getV() {
-		return (float)color.getZ();
+		return color.v();
 	}
 
-	public Point2D getPosition() {
-		return position;
+	public float x() {
+		return pos.x();
 	}
 
-	public Point3D getColor() {
+	public float y() {
+		return pos.y();
+	}
+
+	public void setPos(Position pos) {
+		this.pos = pos;
+	}
+
+	public Position getPos() {
+		return pos;
+	}
+
+	public void setColor(Color color) {
+		this.color = color;
+	}
+
+	public Color getColor() {
 		return color;
 	}
 
-	public float getSpatialDistance() {
-		return (float) position.distance(0, 0);
-	}
+	@Override
+    public int hashCode() {
+        int x = (int)x();
+        int y = x + (int)y();
+        return 31 * y / 25;
+    }
 
-	public float getRangeDistance() {
-		return (float) color.distance(0, 0, 0);
-	}
-
-	public void setColor(Point3D color) {
-		this.color = color;
-	}
+    @Override
+    public boolean equals(Object obj) {
+       if (!(obj instanceof LuvPixel))
+            return false;
+        if (obj == this)
+            return true;
+        LuvPixel rhs = (LuvPixel) obj;
+        double thisX = x();
+        double thisY = y();
+        double otherX = rhs.x();
+        double otherY = rhs.y();
+        return otherX > thisX - 0.5 && otherX < thisX + 0.5
+        		&& otherY > thisY - 0.5 && otherY < thisY + 0.5;
+    }
 }
