@@ -1,6 +1,11 @@
 package mean.shift.kernel;
 import java.lang.Math;
+
 public class GaussianKernel implements Kernel{
+	
+	public static Kernel getInstance() {
+		return new GaussianKernel();
+	}
 
 	@Override
 	public double calculate(double distance, int range) {
