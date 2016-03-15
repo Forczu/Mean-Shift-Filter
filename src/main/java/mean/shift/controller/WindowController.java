@@ -9,6 +9,8 @@ import java.util.TimerTask;
 
 import javax.imageio.ImageIO;
 
+import org.junit.rules.Stopwatch;
+
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
@@ -25,6 +27,7 @@ import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.TextField;
+import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.image.PixelWriter;
@@ -40,6 +43,7 @@ import mean.shift.processing.ColorProcesser;
 import mean.shift.processing.LuvPixel;
 import mean.shift.processing.Metrics;
 import mean.shift.processing.MetricsFactory;
+import mean.shift.utils.StopWatch;
 
 public class WindowController implements Initializable {
 
@@ -91,8 +95,15 @@ public class WindowController implements Initializable {
     @FXML 
     private javafx.scene.control.MenuItem saveMenuItem;
     
+    @FXML
+    private Label ProcessTypeMessage;
+    
+    @FXML
+    private Label timerLabel;
+    
     private String imagePath = null;
 
+    
     //Event handlers
 
     @FXML
@@ -182,7 +193,9 @@ public class WindowController implements Initializable {
 		kernelBox.getSelectionModel().selectFirst();
 		metricsBox.setItems(FXCollections.observableArrayList("Euklidesowa", "Manhattan"));
 		metricsBox.getSelectionModel().selectFirst();
+		ProcessTypeMessage.textProperty().set("");
 		
+		timerLabel.textProperty().set("0:00");
 	}
 
 	/**
@@ -208,6 +221,9 @@ public class WindowController implements Initializable {
                     }
                 });
                 progressBar.progressProperty().bind(meanShift.progressProperty());
+                ProcessTypeMessage.textProperty().bind(meanShift.titleProperty());
+                timerLabel.textProperty().bind(meanShift.messageProperty());
+                
                 new Thread(meanShift).start();
             }
 		});
@@ -262,14 +278,15 @@ public class WindowController implements Initializable {
 	    });
 	}
 
-	/*
-	 * Dodaje style do poszczegÃ³lnych kontrolek widoku.
+	/**
+	 * Dodaje style do poszczególnych kontrolek widoku.
 	 */
 	private void applyCSS() {
 
 		leftImageBtn.getStyleClass().add("button-metallic-grey");
 		runBtn.getStyleClass().add("button-metallic-grey");
 		rightImageBtn.getStyleClass().add("button-metallic-grey");
+		timerLabel.getStyleClass().add("timer-label");
 	}
 
 	/**

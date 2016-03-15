@@ -16,6 +16,7 @@ import mean.shift.processing.Color;
 import mean.shift.processing.ColorProcesser;
 import mean.shift.processing.LuvPixel;
 import mean.shift.processing.Metrics;
+import mean.shift.utils.StopWatch;
 
 /**
  * Glowna klasa algorytmu mean shift
@@ -34,6 +35,8 @@ public class MeanShiftFilter extends Task<Image> {
 	protected int minShift;
 	protected Metrics metrics;
 
+	private StopWatch stopWatch = new StopWatch();
+	
 	public MeanShiftFilter(Image image, Kernel kernel, int spatialPar, int rangePar, int maxIters, int minShift,
 			Metrics metrics) {
 		this.image = image;
@@ -48,6 +51,10 @@ public class MeanShiftFilter extends Task<Image> {
 	@Override
 	protected Image call() {
 
+        stopWatch.start();
+		updateMessage(String.valueOf(stopWatch.elapsedTime()));
+		updateTitle("Trwa filtrowanie...");
+		
 		LOGGER.info("START MEAN SHIFT PROCESSING");
 		ColorProcesser colorProcesser = new ColorProcesser();
 		int[][] pixels = colorProcesser.getPixelArray(image);
@@ -55,9 +62,15 @@ public class MeanShiftFilter extends Task<Image> {
 		LOGGER.info("START MEAN SHIFT ALGORITHM");
 		LuvPixel[] outImage = meanShiftAlgorithm(pixels, luv);
 		LOGGER.info("MEAN SHIFT ALGORITHM FINISHED AND START SEGMENTATION");
+		
+		updateTitle("Trwa segmentacja...");
+		
 		segmentationAlgorithm(pixels,luv,outImage);
 		LOGGER.info("SEGMENTATION FINISHED");
 		Image filteredImage = convertPixelToImage(pixels,colorProcesser,outImage);	
+		
+		updateTitle("Zakoñczono przetwarzanie");
+		
 		return filteredImage;
 	}
 
@@ -75,7 +88,6 @@ public class MeanShiftFilter extends Task<Image> {
 		}
 		return filteredImage;
 	}
-
 	LuvPixel[] meanShiftAlgorithm(int[][] pixels,LuvPixel[] luv){
 		LuvPixel[] outImage = new LuvPixel[luv.length];
 		int width = pixels.length;
@@ -86,6 +98,7 @@ public class MeanShiftFilter extends Task<Image> {
 		int hrad = spatialPar;
 		int hcolor = rangePar;
 		int pixelNumber = luv.length;
+		
 		updateProgress(0, pixelNumber);
 
 		int threadsCount = Runtime.getRuntime().availableProcessors();
@@ -173,6 +186,7 @@ public class MeanShiftFilter extends Task<Image> {
 
 			outImage[i] = new LuvPixel(luv[i].getPos(), Color.getInstance(pointColorL, pointColorU, pointColorV));
 			updateProgress(i, pixelNumber);
+			updateMessage(String.valueOf(stopWatch.elapsedTime()));
 
 		}
 		return outImage;
@@ -185,7 +199,9 @@ public class MeanShiftFilter extends Task<Image> {
 		int colorRange = 3;
 		int pixelNumber = luvInputImage.length;
 		List<HashSet<LuvPixel>> clusters = new ArrayList<>();
-
+	
+		updateProgress(0, pixelNumber);
+		
 		for (int i = 0; i < pixelNumber; i++) {
 			int xPixel = (int) luvOutputImage[i].getPos().x();
 			int yPixel = (int) luvOutputImage[i].getPos().y();
@@ -223,6 +239,8 @@ public class MeanShiftFilter extends Task<Image> {
 					}
 				}
 			}
+			updateProgress(i, pixelNumber);
+			updateMessage(String.valueOf(stopWatch.elapsedTime()));
 		}
 		coloringPixelsInClusters(clusters);
 		//deletePixelsFromSmallClusters(clusters);
