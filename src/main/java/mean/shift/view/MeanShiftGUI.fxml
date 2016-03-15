@@ -4,20 +4,21 @@
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.ChoiceBox?>
 <?import javafx.scene.control.Label?>
-<?import javafx.scene.control.ProgressBar?>
-<?import javafx.scene.control.SplitPane?>
-<?import javafx.scene.control.TextField?>
-<?import javafx.scene.image.ImageView?>
-<?import javafx.scene.layout.AnchorPane?>
-<?import javafx.scene.layout.VBox?>
-<?import javafx.scene.layout.HBox?>
 <?import javafx.scene.control.Menu?>
 <?import javafx.scene.control.MenuBar?>
 <?import javafx.scene.control.MenuItem?>
+<?import javafx.scene.control.ProgressBar?>
+<?import javafx.scene.control.RadioButton?>
 <?import javafx.scene.control.SeparatorMenuItem?>
-<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.control.SplitPane?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.ToggleGroup?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
 
-<AnchorPane fx:id="mainPane" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minHeight="-Infinity" minWidth="-Infinity" prefHeight="550.0" prefWidth="850.0" xmlns="http://javafx.com/javafx/8.0.65" xmlns:fx="http://javafx.com/fxml/1" fx:controller="mean.shift.controller.WindowController">
+<AnchorPane fx:id="mainPane" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minHeight="-Infinity" minWidth="-Infinity" prefHeight="640.0" prefWidth="900.0" xmlns="http://javafx.com/javafx/8.0.65" xmlns:fx="http://javafx.com/fxml/1" fx:controller="mean.shift.controller.WindowController">
    <children>
       <SplitPane fx:id="mainSplitPane" dividerPositions="0.375, 0.625" prefHeight="160.0" prefWidth="200.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
         <items>
@@ -48,16 +49,29 @@
                         <Insets />
                      </opaqueInsets>
                   </VBox>
+                  <VBox alignment="CENTER_LEFT" maxHeight="-Infinity" maxWidth="-Infinity" prefHeight="37.0" prefWidth="140.0">
+                     <children>
+                        <RadioButton fx:id="filtrationRadioBtn" mnemonicParsing="false" selected="true" text="Filtracja">
+                           <toggleGroup>
+                              <ToggleGroup fx:id="filters" />
+                           </toggleGroup></RadioButton>
+                        <RadioButton fx:id="segmentationRadioBtn" mnemonicParsing="false" text="Segmentacja" toggleGroup="$filters" />
+                     </children>
+                  </VBox>
                   <Button fx:id="runBtn" mnemonicParsing="false" prefWidth="140.0" text="Wykonaj" />
                	  <Button id="rightImageBtn" fx:id="rightImageBtn" disable="true" mnemonicParsing="false" onAction="#handleRightImageButtonAction" prefWidth="140.0" text="Zapisz" />
                   <ProgressBar fx:id="progressBar" prefWidth="200.0" progress="0.0" />
                   <Label fx:id="ProcessTypeMessage" />
-                  <HBox alignment="CENTER" spacing="5"> 
-	                  <children>
-		                  <Label text="Czas przetwarzania:" />
-		                  <Label fx:id="timerLabel" />
-	                  </children>
-                  </HBox>
+                  <VBox maxWidth="-Infinity" prefHeight="50.0" prefWidth="200.0">
+                     <children>
+                        <HBox alignment="CENTER_LEFT" spacing="5">
+      	                  <children>
+      		                  <Label text="Czas przetwarzania:" />
+      		                  <Label fx:id="timerLabel" />
+      	                  </children>
+                        </HBox>
+                     </children>
+                  </VBox>
                </children>
             </VBox>
             <AnchorPane maxHeight="-Infinity" maxWidth="-Infinity">
@@ -67,15 +81,15 @@
             </AnchorPane>
         </items>
       </SplitPane>
-      
-      <MenuBar AnchorPane.rightAnchor="0.0" AnchorPane.leftAnchor="0.0">
+
+      <MenuBar AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0">
         <menus>
           <Menu mnemonicParsing="false" text="File">
             <items>
-              <MenuItem text="Open" onAction="#handleOpenMenuItem" />
-              <MenuItem text="Save" onAction="#handleSaveMenuItem" disable="true" fx:id="saveMenuItem" />
+              <MenuItem onAction="#handleOpenMenuItem" text="Open" />
+              <MenuItem fx:id="saveMenuItem" disable="true" onAction="#handleSaveMenuItem" text="Save" />
                <SeparatorMenuItem />
-              <MenuItem mnemonicParsing="false" text="Close" onAction="#handleCloseMenuItem" />
+              <MenuItem mnemonicParsing="false" onAction="#handleCloseMenuItem" text="Close" />
             </items>
           </Menu>
           <Menu mnemonicParsing="false" text="Edit">
@@ -90,7 +104,6 @@
           </Menu>
         </menus>
       </MenuBar>
-      
+
    </children>
 </AnchorPane>
-

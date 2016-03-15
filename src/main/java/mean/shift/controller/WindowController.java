@@ -9,8 +9,6 @@ import java.util.TimerTask;
 
 import javax.imageio.ImageIO;
 
-import org.junit.rules.Stopwatch;
-
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
@@ -21,29 +19,22 @@ import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.geometry.Point3D;
 import javafx.scene.control.Button;
 import javafx.scene.control.ChoiceBox;
+import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
+import javafx.scene.control.RadioButton;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.TextField;
-import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.image.PixelWriter;
-import javafx.scene.image.WritableImage;
 import javafx.scene.layout.AnchorPane;
 import javafx.stage.FileChooser;
-import mean.shift.filter.MeanShiftFilter;
-import mean.shift.kernel.GaussianKernel;
+import mean.shift.filter.MeanShift;
 import mean.shift.kernel.Kernel;
 import mean.shift.kernel.KernelFactory;
-import mean.shift.kernel.RectangularKernel;
-import mean.shift.processing.ColorProcesser;
-import mean.shift.processing.LuvPixel;
 import mean.shift.processing.Metrics;
 import mean.shift.processing.MetricsFactory;
-import mean.shift.utils.StopWatch;
 
 public class WindowController implements Initializable {
 
@@ -88,22 +79,28 @@ public class WindowController implements Initializable {
 
     @FXML
     private ChoiceBox<String> metricsBox;
-    
+
     @FXML
     private ChoiceBox<String> kernelBox;
-    
-    @FXML 
+
+    @FXML
     private javafx.scene.control.MenuItem saveMenuItem;
-    
+
     @FXML
     private Label ProcessTypeMessage;
-    
+
     @FXML
     private Label timerLabel;
-    
+
+    @FXML
+    private RadioButton filtrationRadioBtn;
+
+    @FXML
+    private RadioButton segmentationRadioBtn;
+
     private String imagePath = null;
 
-    
+
     //Event handlers
 
     @FXML
@@ -117,24 +114,24 @@ public class WindowController implements Initializable {
 
     	saveImage();
     }
-    
+
     @FXML
     public void handleOpenMenuItem(ActionEvent event) {
-    	
+
     	openImage();
     }
 
     @FXML
     public void handleSaveMenuItem(ActionEvent event) {
-    	
+
     	saveImage();
     }
-    
+
     @FXML
     public void handleCloseMenuItem(ActionEvent event) {
         System.exit(0);
     }
-    
+
     //Methods
     /**
      * Otwiera nowy rysunek.
@@ -194,7 +191,7 @@ public class WindowController implements Initializable {
 		metricsBox.setItems(FXCollections.observableArrayList("Euklidesowa", "Manhattan"));
 		metricsBox.getSelectionModel().selectFirst();
 		ProcessTypeMessage.textProperty().set("");
-		
+
 		timerLabel.textProperty().set("0:00");
 	}
 
@@ -223,7 +220,7 @@ public class WindowController implements Initializable {
                 progressBar.progressProperty().bind(meanShift.progressProperty());
                 ProcessTypeMessage.textProperty().bind(meanShift.titleProperty());
                 timerLabel.textProperty().bind(meanShift.messageProperty());
-                
+
                 new Thread(meanShift).start();
             }
 		});
@@ -304,7 +301,13 @@ public class WindowController implements Initializable {
     	int minShift = Integer.parseInt(convergenceBox.getText());
     	Metrics metrics = MetricsFactory.getMetrics(metricsBox.getValue());
     	Kernel kernel = KernelFactory.getKernel(kernelBox.getValue());
-		return new MeanShiftFilter(image, kernel, spatialPar, rangePar, maxIters, minShift, metrics);
+    	int width = (int)image.getWidth();
+    	if (segmentationRadioBtn.isSelected()) {
+    		return MeanShift.getInstance().createSegmentationWorker(image,
+    				kernel, spatialPar, rangePar, maxIters, minShift, metrics, width);
+    	}
+		return MeanShift.getInstance().createFilterWorker(image, kernel,
+				spatialPar, rangePar, maxIters, minShift, metrics, width);
     }
 
 }
