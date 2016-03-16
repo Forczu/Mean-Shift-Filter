@@ -17,18 +17,42 @@
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
 
 <AnchorPane fx:id="mainPane" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minHeight="-Infinity" minWidth="-Infinity" prefHeight="640.0" prefWidth="900.0" xmlns="http://javafx.com/javafx/8.0.65" xmlns:fx="http://javafx.com/fxml/1" fx:controller="mean.shift.controller.WindowController">
    <children>
-      <SplitPane fx:id="mainSplitPane" dividerPositions="0.375, 0.625" prefHeight="160.0" prefWidth="200.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+      <HBox alignment="CENTER" layoutY="25.0" maxWidth="1.7976931348623157E308" prefHeight="25.0" prefWidth="900.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0">
+         <children>
+            <Label fx:id="actualImageLabel" alignment="CENTER" maxWidth="-Infinity" minWidth="-Infinity" prefWidth="300.0" text="Aktualnie przetwarzany obraz">
+               <font>
+                  <Font name="System Bold" size="12.0" />
+               </font>
+            </Label>
+            <Label fx:id="optionsLabel" alignment="CENTER" maxWidth="-Infinity" minWidth="-Infinity" prefHeight="17.0" prefWidth="300.0" text="Ustawienia">
+               <font>
+                  <Font name="System Bold" size="12.0" />
+               </font>
+            </Label>
+            <Label fx:id="lastProcessingLabel" alignment="CENTER" maxWidth="-Infinity" minWidth="-Infinity" prefHeight="17.0" prefWidth="300.0" text="Ostatnie przetworzenie obrazu">
+               <font>
+                  <Font name="System Bold" size="12.0" />
+               </font>
+               <HBox.margin>
+                  <Insets />
+               </HBox.margin>
+            </Label>
+         </children>
+      </HBox>
+      <SplitPane fx:id="mainSplitPane" dividerPositions="0.375, 0.625" minHeight="-Infinity" minWidth="-Infinity" prefHeight="590.0" prefWidth="900.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0">
         <items>
-            <AnchorPane fx:id="leftPane" maxHeight="-Infinity" maxWidth="-Infinity">
+            <AnchorPane fx:id="leftPane" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity">
                <children>
                   <ImageView fx:id="leftImageView" fitHeight="400.0" fitWidth="300.0" pickOnBounds="true" preserveRatio="true" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0" />
                </children>
             </AnchorPane>
             <VBox alignment="CENTER" prefHeight="500.0" prefWidth="442.0" spacing="10">
                <children>
+                  <Label fx:id="fileNumerLabel" />
                   <Button id="leftImageBtn" fx:id="leftImageBtn" mnemonicParsing="false" onAction="#handleLeftImageButtonAction" prefWidth="140.0" text="&lt;- Rysunek" />
                   <VBox alignment="CENTER" prefHeight="250.0" prefWidth="100.0">
                      <children>
@@ -74,7 +98,7 @@
                   </VBox>
                </children>
             </VBox>
-            <AnchorPane maxHeight="-Infinity" maxWidth="-Infinity">
+            <AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity">
                <children>
                   <ImageView fx:id="rightImageView" fitHeight="400.0" fitWidth="300.0" pickOnBounds="true" preserveRatio="true" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0" />
                </children>

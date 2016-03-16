@@ -3,16 +3,14 @@ package mean.shift.controller;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.LinkOption;
-import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Queue;
 import java.util.ResourceBundle;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.ForkJoinPool.ManagedBlocker;
 
 import javax.imageio.ImageIO;
 
@@ -21,7 +19,6 @@ import org.codehaus.jackson.map.ObjectMapper;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
-import javafx.concurrent.Task;
 import javafx.concurrent.WorkerStateEvent;
 import javafx.embed.swing.SwingFXUtils;
 import javafx.event.ActionEvent;
@@ -42,6 +39,7 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.AnchorPane;
 import javafx.stage.FileChooser;
 import mean.shift.filter.MeanShift;
+import mean.shift.filter.MeanShiftTask;
 import mean.shift.kernel.GaussianKernel;
 import mean.shift.kernel.Kernel;
 import mean.shift.kernel.KernelFactory;
@@ -115,9 +113,13 @@ public class WindowController implements Initializable {
     @FXML
     private RadioButton segmentationRadioBtn;
 
+    @FXML
+    private Label fileNumerLabel;
 
-    String imagePath;
-    List<String> imageList;
+    @FXML private Label actualImageLabel;
+    @FXML private Label optionsLabel;
+    @FXML private Label lastProcessingLabel;
+
     ConfigurationProfile config = null;
 
 
@@ -162,6 +164,11 @@ public class WindowController implements Initializable {
     	saveProfile();
     }
 
+	private void updateQueueLabel(int size) {
+    	fileNumerLabel.setText("W kolejce znajduje sie " + size + " plikow.");
+
+	}
+
 	//Methods
     /**
      * Otwiera nowy rysunek.
@@ -175,15 +182,19 @@ public class WindowController implements Initializable {
                 new FileChooser.ExtensionFilter("JPG", "*.jpg"),
                 new FileChooser.ExtensionFilter("PNG", "*.png")
             );
-    	File file = fileChooser.showOpenDialog(null);
-        if (file != null) {
-        	leftImageView.setImage(new Image(file.toURI().toString()));
-        	String absolutePath = file.getAbsolutePath();
-    	    imagePath = absolutePath.
+    	List<File> fileList = fileChooser.showOpenMultipleDialog(null);
+        if (fileList != null) {
+        	updateQueueLabel(fileList.size());
+        	File firstFile = fileList.get(0);
+        	leftImageView.setImage(new Image(firstFile.toURI().toString()));
+        	String absolutePath = firstFile.getAbsolutePath();
+    	    String imagePath = absolutePath.
     	    	     substring(0, absolutePath.lastIndexOf(File.separator));
     	    config.setPath(imagePath);
-        	imageList = new ArrayList<>();
-        	imageList.add(file.getName());
+        	List<String> imageList = new ArrayList<>();
+        	for (File file : fileList) {
+        		imageList.add(file.getName());
+			}
         	config.setImages(imageList);
         }
     }
@@ -233,32 +244,80 @@ public class WindowController implements Initializable {
 	}
 
 	/**
+	 * Konfiguruje zadanie MS tak, by nastepne zadanie zaczelo sie wykonywac
+	 * dopiero po wykonaniu poprzedniego. Ustawia pasek postepu oraz
+	 * wyswietlone rysunki pod aktualny task.
+	 *
+	 * @param task aktualne zadanie
+	 * @param queue kolejka rysunkow do przetworzenia
+	 * @param image nazwa rysunku
+	 */
+	private void configureMeanShiftTask(MeanShiftTask task, Queue<String> queue, String image) {
+		leftImageView.setImage(new Image(new File(config.getPath() + "//" + image).toURI().toString()));
+		task.addEventHandler(WorkerStateEvent.WORKER_STATE_SUCCEEDED,
+        	    new EventHandler<WorkerStateEvent>() {
+            @Override
+            public void handle(WorkerStateEvent t) {
+            	Image filteredImage = task.getValue();
+            	rightImageView.setImage(filteredImage);
+            	String fileName = "out_" + image + "_"
+            			+ (filtrationRadioBtn.isSelected() ? "filtration" : "segmentation")
+            			+ "_hs_" + config.getSpatialPar()
+            			+ "_hr_" + config.getRangePar()
+            			+ "_maxIters_" + config.getMaxIters()
+            			+ "_minShift_" + config.getMinShift()
+            			+ "_kernel_" + config.getKernel()
+            			+ "_metrics_" + config.getMetrics()
+            			+ ".png";
+            	File file = new File(config.getPath() + "//" + fileName);
+            	try {
+					ImageIO.write(SwingFXUtils.fromFXImage(filteredImage, null),
+							"png", file);
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+            }
+		});
+
+		progressBar.progressProperty().bind(task.progressProperty());
+        ProcessTypeMessage.textProperty().bind(task.titleProperty());
+        timerLabel.textProperty().bind(task.messageProperty());
+
+		task.setOnSucceeded(new EventHandler<WorkerStateEvent>() {
+			@Override
+			public void handle(WorkerStateEvent event) {
+				updateQueueLabel(queue.size());
+				String next = queue.poll();
+				if (next != null) {
+					MeanShiftTask task = createMeanShiftFilter(next);
+					configureMeanShiftTask(task, queue, next);
+	                new Thread(task).start();
+				} else {
+			    	rightImageBtn.setDisable(false);
+					runBtn.setDisable(false);
+					saveMenuItem.setDisable(false);
+					rightImageView.setFitHeight(mainPane.getHeight() - 50);
+				}
+			}
+		});
+	}
+
+	/**
 	 * Umozliwia przyciskowi "uruchom" wykonanie zadania filtrowania.
-	 * Po wykonaniu zadania rysunek wyjsciowy jest wyswietlony po prawej stronie.
 	 */
 	private void configureRunButton() {
 		runBtn.setOnAction(new EventHandler<ActionEvent>() {
 			public void handle(ActionEvent event) {
-            	Image image = leftImageView.getImage();
-            	if (image == null) return;
+				List<String> imageList = config.getImages();
+				if (imageList == null) return;
+				updateConfig();
 				runBtn.setDisable(true);
-                Task<Image> meanShift = createMeanShiftFilter();
-                meanShift.addEventHandler(WorkerStateEvent.WORKER_STATE_SUCCEEDED,
-                	    new EventHandler<WorkerStateEvent>() {
-                    @Override
-                    public void handle(WorkerStateEvent t) {
-                    	Image filteredImage = meanShift.getValue();
-                    	rightImageView.setImage(filteredImage);
-                    	rightImageBtn.setDisable(false);
-                		runBtn.setDisable(false);
-                		saveMenuItem.setDisable(false);
-                    }
-                });
-                progressBar.progressProperty().bind(meanShift.progressProperty());
-                ProcessTypeMessage.textProperty().bind(meanShift.titleProperty());
-                timerLabel.textProperty().bind(meanShift.messageProperty());
-
-                new Thread(meanShift).start();
+				Queue<String> queue = new ArrayDeque<>(imageList);
+				String firstImage = queue.poll();
+				MeanShiftTask task = createMeanShiftFilter(firstImage);
+				configureMeanShiftTask(task, queue, firstImage);
+                Thread thread = new Thread(task);
+                thread.start();
             }
 		});
 	}
@@ -276,16 +335,21 @@ public class WindowController implements Initializable {
 				if (task != null) {
 					task.cancel();
 				}
-				task = new TimerTask()
-				{
+				task = new TimerTask() {
 					@Override
 					public void run() {
-						double newWidth = mainPane.getWidth() * 3.0 / 8.0;
-						double newHeight = mainPane.getHeight();
-						leftImageView.setFitWidth(newWidth);
-						leftImageView.setFitHeight(newHeight);
-						rightImageView.setFitWidth(newWidth);
-						rightImageView.setFitHeight(newHeight);
+						double splitPaneWidth = mainPane.getWidth() * 3.0 / 8.0;
+						double splitPaneHeight = mainPane.getHeight() - 50;
+						double labelWidth = mainPane.getWidth() / 3.0;
+						leftImageView.setFitWidth(splitPaneWidth);
+						leftImageView.setFitHeight(splitPaneHeight);
+						rightImageView.setFitWidth(splitPaneWidth);
+						rightImageView.setFitHeight(splitPaneHeight);
+						mainSplitPane.setPrefWidth(splitPaneWidth);
+						mainSplitPane.setPrefHeight(splitPaneHeight);
+						actualImageLabel.setPrefWidth(labelWidth);
+						optionsLabel.setPrefWidth(labelWidth);
+						lastProcessingLabel.setPrefWidth(labelWidth);
 					}
 				};
 				timer.schedule(task, delayTime);
@@ -328,9 +392,9 @@ public class WindowController implements Initializable {
 	 * z pobranymi parametrami na wskazanym rysunku.
 	 * @return zadanie mean shift
 	 */
-	protected Task<Image> createMeanShiftFilter() {
+	protected MeanShiftTask createMeanShiftFilter(String file) {
     	if (config.getPath() == null) return null;
-    	String imagePath = config.getPath() + "//" + config.getImages().get(0);
+    	String imagePath = config.getPath() + "//" + file;
 		File imageFile = new File(imagePath);
 		if (!imageFile.exists()) return null;
     	Image image = new Image(imageFile.toURI().toString());
@@ -348,6 +412,9 @@ public class WindowController implements Initializable {
 		return MeanShift.getInstance().createFilterWorker(parameter);
     }
 
+	/**
+	 * Odczyt konfiguracji profilu z pliku JSON.
+	 */
     private void loadProfile() {
 
     	FileChooser fileChooser = new FileChooser();
@@ -362,7 +429,7 @@ public class WindowController implements Initializable {
 	        	String profilePath = Paths.get(file.toURI()).toString();
 	        	ObjectMapper mapper = new ObjectMapper();
 				config = mapper.readValue(new File(profilePath), ConfigurationProfile.class);
-				if (config.getImages().size() == 1) {
+				if (config.getImages().size() != 0) {
 					String imagePath = config.getPath() + "//" + config.getImages().get(0);
 					File imageFile = new File(imagePath);
 					if (imageFile.exists()) {
@@ -372,6 +439,7 @@ public class WindowController implements Initializable {
 						throw new IOException();
 					}
 				}
+				updateQueueLabel(config.getImages().size());
 				metricsBox.setValue(config.getMetrics());
 				kernelBox.setValue(config.getKernel());
 				spacialParameterBox.setText(Integer.toString(config.getSpatialPar()));
@@ -389,6 +457,9 @@ public class WindowController implements Initializable {
         }
 	}
 
+    /**
+     * Zapis konfiguracji do zewnetrznego pliku JSON.
+     */
     private void saveProfile() {
     	FileChooser fileChooser = new FileChooser();
 		fileChooser.setTitle("Wybierz miejsce na dysku, gdzie chcesz zapisac konfiguracje");
@@ -408,10 +479,12 @@ public class WindowController implements Initializable {
 		}
 	}
 
+    /**
+     * Aktualizacja konfiguracji profilu, pobranie danych z pol
+     * i zapis.
+     */
     private void updateConfig() {
 
-    	config.setPath(imagePath);
-    	config.setImages(imageList);
     	config.setKernel(kernelBox.getValue());
     	config.setMetrics(metricsBox.getValue());
 		config.setSpatialPar(Integer.parseInt(spacialParameterBox.getText()));
