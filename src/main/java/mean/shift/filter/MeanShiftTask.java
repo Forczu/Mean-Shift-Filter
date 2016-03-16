@@ -8,10 +8,11 @@ import javafx.scene.image.Image;
 import javafx.scene.image.PixelWriter;
 import javafx.scene.image.WritableImage;
 import mean.shift.kernel.Kernel;
+import mean.shift.metrics.Metrics;
 import mean.shift.processing.Color;
 import mean.shift.processing.ColorProcesser;
 import mean.shift.processing.LuvPixel;
-import mean.shift.processing.Metrics;
+import mean.shift.processing.MeanShiftParameter;
 import mean.shift.utils.StopWatch;
 
 public abstract class MeanShiftTask extends Task<Image> {
@@ -27,22 +28,19 @@ public abstract class MeanShiftTask extends Task<Image> {
 	protected int maxIters;
 	protected int minShift;
 	protected Metrics metrics;
-	protected int width;
-	
+
 	protected static long algorithmProgress = 0;
 
 	protected ColorProcesser colorProcesser = null;
 
-	public MeanShiftTask(Image image, Kernel kernel, int spatialPar, int rangePar, int maxIters, int minShift,
-			Metrics metrics, int width) {
-		this.image = image;
-		this.kernel = kernel;
-		this.spatialPar = spatialPar;
-		this.rangePar = rangePar;
-		this.maxIters = maxIters;
-		this.minShift = minShift;
-		this.metrics = metrics;
-		this.width = width;
+	public MeanShiftTask(MeanShiftParameter parameter) {
+		this.image = parameter.getImage();
+		this.kernel = parameter.getKernel();
+		this.spatialPar = parameter.getSpatialPar();
+		this.rangePar = parameter.getRangePar();
+		this.maxIters = parameter.getMaxIters();
+		this.minShift = parameter.getMinShift();
+		this.metrics = parameter.getMetrics();
 		colorProcesser = new ColorProcesser();
 	}
 
@@ -59,6 +57,7 @@ public abstract class MeanShiftTask extends Task<Image> {
 	 * @return
 	 */
 	protected Image convertPixelToImage(LuvPixel[] luv) {
+		int width = (int)image.getWidth();
 		int height = luv.length / width;
 		int[][] rgb = colorProcesser.getRgbArray(luv, width);
 		WritableImage filteredImage = new WritableImage(width, height);
@@ -92,7 +91,7 @@ public abstract class MeanShiftTask extends Task<Image> {
 		int[][] pixels = colorProcesser.getPixelArray(image);
 		LuvPixel[] luv = colorProcesser.getLuvArray(pixels);
 		LuvPixel[] processedPixels = process(pixels, luv);
-		
+
 		return processedPixels;
 	}
 

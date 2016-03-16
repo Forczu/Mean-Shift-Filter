@@ -1,9 +1,13 @@
-package mean.shift.processing;
+package mean.shift.metrics;
 
 public class EuclideanMetrics implements Metrics {
 
 	public static Metrics getInstance() {
 		return new EuclideanMetrics();
+	}
+
+	public static String getName() {
+		return "Euklidesowa";
 	}
 
 	@Override

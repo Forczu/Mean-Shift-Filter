@@ -1,9 +1,13 @@
-package mean.shift.processing;
+package mean.shift.metrics;
 
 public class ManhattanMetrics implements Metrics {
 
 	public static Metrics getInstance() {
 		return new ManhattanMetrics();
+	}
+
+	public static String getName() {
+		return "Manhattan";
 	}
 
 	@Override

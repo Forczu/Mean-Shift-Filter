@@ -92,6 +92,12 @@
               <MenuItem mnemonicParsing="false" onAction="#handleCloseMenuItem" text="Close" />
             </items>
           </Menu>
+            <Menu mnemonicParsing="false" text="Profile">
+              <items>
+                <MenuItem mnemonicParsing="false" onAction="#handleLoadProfileMenuItem" text="Load" />
+                  <MenuItem mnemonicParsing="false" onAction="#handleSaveProfileMenuItem" text="Save" />
+              </items>
+            </Menu>
           <Menu mnemonicParsing="false" text="Edit">
             <items>
               <MenuItem mnemonicParsing="false" text="Delete" />

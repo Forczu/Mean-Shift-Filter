@@ -2,7 +2,7 @@ package mean.shift.filter;
 
 import javafx.scene.image.Image;
 import mean.shift.kernel.Kernel;
-import mean.shift.processing.Metrics;
+import mean.shift.processing.MeanShiftParameter;
 
 /**
  * Glowna klasa algorytmu mean shift
@@ -24,14 +24,12 @@ public class MeanShift {
 		return instance;
 	}
 
-	public MeanShiftTask createFilterWorker(Image image, Kernel kernel, int spatialPar, int rangePar, int maxIters,
-			int minShift, Metrics metrics, int width) {
-		return new MeanShiftFilterTask(image, kernel, spatialPar, rangePar, maxIters, minShift, metrics, width);
+	public MeanShiftTask createFilterWorker(MeanShiftParameter parameter) {
+		return new MeanShiftFilterTask(parameter);
 	}
 
-	public MeanShiftTask createSegmentationWorker(Image image, Kernel kernel, int spatialPar, int rangePar, int maxIters,
-			int minShift, Metrics metrics, int width) {
-		return new MeanShiftSegmentationTask(image, kernel, spatialPar, rangePar, maxIters, minShift, metrics, width);
+	public MeanShiftTask createSegmentationWorker(MeanShiftParameter parameter) {
+		return new MeanShiftSegmentationTask(parameter);
 	}
 
 }

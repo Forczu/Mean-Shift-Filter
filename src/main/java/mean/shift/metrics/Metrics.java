@@ -1,4 +1,4 @@
-package mean.shift.processing;
+package mean.shift.metrics;
 
 public interface Metrics {
 

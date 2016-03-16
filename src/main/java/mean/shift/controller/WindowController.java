@@ -3,11 +3,20 @@ package mean.shift.controller;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.LinkOption;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.ResourceBundle;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.ForkJoinPool.ManagedBlocker;
 
 import javax.imageio.ImageIO;
+
+import org.codehaus.jackson.map.ObjectMapper;
 
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -19,6 +28,8 @@ import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
 import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.Label;
@@ -35,8 +46,12 @@ import mean.shift.kernel.GaussianKernel;
 import mean.shift.kernel.Kernel;
 import mean.shift.kernel.KernelFactory;
 import mean.shift.kernel.RectangularKernel;
-import mean.shift.processing.Metrics;
-import mean.shift.processing.MetricsFactory;
+import mean.shift.metrics.EuclideanMetrics;
+import mean.shift.metrics.ManhattanMetrics;
+import mean.shift.metrics.Metrics;
+import mean.shift.metrics.MetricsFactory;
+import mean.shift.processing.ConfigurationProfile;
+import mean.shift.processing.MeanShiftParameter;
 
 public class WindowController implements Initializable {
 
@@ -100,7 +115,10 @@ public class WindowController implements Initializable {
     @FXML
     private RadioButton segmentationRadioBtn;
 
-    private String imagePath = null;
+
+    String imagePath;
+    List<String> imageList;
+    ConfigurationProfile config = null;
 
 
     //Event handlers
@@ -134,7 +152,17 @@ public class WindowController implements Initializable {
         System.exit(0);
     }
 
-    //Methods
+    @FXML
+    public void handleLoadProfileMenuItem(ActionEvent event) {
+    	loadProfile();
+    }
+
+	@FXML
+    public void handleSaveProfileMenuItem(ActionEvent event) {
+    	saveProfile();
+    }
+
+	//Methods
     /**
      * Otwiera nowy rysunek.
      */
@@ -149,8 +177,14 @@ public class WindowController implements Initializable {
             );
     	File file = fileChooser.showOpenDialog(null);
         if (file != null) {
-        	imagePath = file.toURI().toString();
-        	leftImageView.setImage(new Image(imagePath));
+        	leftImageView.setImage(new Image(file.toURI().toString()));
+        	String absolutePath = file.getAbsolutePath();
+    	    imagePath = absolutePath.
+    	    	     substring(0, absolutePath.lastIndexOf(File.separator));
+    	    config.setPath(imagePath);
+        	imageList = new ArrayList<>();
+        	imageList.add(file.getName());
+        	config.setImages(imageList);
         }
     }
 
@@ -181,6 +215,7 @@ public class WindowController implements Initializable {
      */
 	public void initialize(URL location, ResourceBundle resources) {
 
+    	config = new ConfigurationProfile();
 		applyCSS();
 		configureMainSplitPane();
 		configureAsNumericBox(spacialParameterBox);
@@ -190,7 +225,7 @@ public class WindowController implements Initializable {
 		configureRunButton();
 		kernelBox.setItems(FXCollections.observableArrayList(GaussianKernel.getName(), RectangularKernel.getName()));
 		kernelBox.getSelectionModel().selectFirst();
-		metricsBox.setItems(FXCollections.observableArrayList("Euklidesowa", "Manhattan"));
+		metricsBox.setItems(FXCollections.observableArrayList(EuclideanMetrics.getName(), ManhattanMetrics.getName()));
 		metricsBox.getSelectionModel().selectFirst();
 		ProcessTypeMessage.textProperty().set("");
 
@@ -294,22 +329,95 @@ public class WindowController implements Initializable {
 	 * @return zadanie mean shift
 	 */
 	protected Task<Image> createMeanShiftFilter() {
-    	if (imagePath == null)
-    		return null;
-    	Image image = new Image(imagePath);
+    	if (config.getPath() == null) return null;
+    	String imagePath = config.getPath() + "//" + config.getImages().get(0);
+		File imageFile = new File(imagePath);
+		if (!imageFile.exists()) return null;
+    	Image image = new Image(imageFile.toURI().toString());
     	int spatialPar = Integer.parseInt(spacialParameterBox.getText());
     	int rangePar = Integer.parseInt(rangeParameterBox.getText());
     	int maxIters = Integer.parseInt(iterationNumberBox.getText());
     	int minShift = Integer.parseInt(convergenceBox.getText());
     	Metrics metrics = MetricsFactory.getMetrics(metricsBox.getValue());
     	Kernel kernel = KernelFactory.getKernel(kernelBox.getValue());
-    	int width = (int)image.getWidth();
+    	MeanShiftParameter parameter = new MeanShiftParameter(image, kernel, spatialPar, rangePar, maxIters, minShift, metrics);
+
     	if (segmentationRadioBtn.isSelected()) {
-    		return MeanShift.getInstance().createSegmentationWorker(image,
-    				kernel, spatialPar, rangePar, maxIters, minShift, metrics, width);
+    		return MeanShift.getInstance().createSegmentationWorker(parameter);
     	}
-		return MeanShift.getInstance().createFilterWorker(image, kernel,
-				spatialPar, rangePar, maxIters, minShift, metrics, width);
+		return MeanShift.getInstance().createFilterWorker(parameter);
+    }
+
+    private void loadProfile() {
+
+    	FileChooser fileChooser = new FileChooser();
+    	fileChooser.setTitle("Wybierz plik z konfiguracja");
+    	fileChooser.getExtensionFilters().add(
+                new FileChooser.ExtensionFilter("Pliki JSON", "*.json")
+            );
+    	File file = fileChooser.showOpenDialog(null);
+        if (file != null) {
+        	ConfigurationProfile oldConfig = config;
+        	try {
+	        	String profilePath = Paths.get(file.toURI()).toString();
+	        	ObjectMapper mapper = new ObjectMapper();
+				config = mapper.readValue(new File(profilePath), ConfigurationProfile.class);
+				if (config.getImages().size() == 1) {
+					String imagePath = config.getPath() + "//" + config.getImages().get(0);
+					File imageFile = new File(imagePath);
+					if (imageFile.exists()) {
+						Image image = new Image(imageFile.toURI().toString());
+						leftImageView.setImage(image);
+					} else {
+						throw new IOException();
+					}
+				}
+				metricsBox.setValue(config.getMetrics());
+				kernelBox.setValue(config.getKernel());
+				spacialParameterBox.setText(Integer.toString(config.getSpatialPar()));
+				rangeParameterBox.setText(Integer.toString(config.getRangePar()));
+				iterationNumberBox.setText(Integer.toString(config.getMaxIters()));
+				convergenceBox.setText(Integer.toString(config.getMinShift()));
+			} catch (IOException e) {
+				config = oldConfig;
+				Alert alert = new Alert(AlertType.ERROR);
+				alert.setTitle("Niepowodzenie");
+				alert.setHeaderText(null);
+				alert.setContentText("Wybrany plik jest niepoprawna konfiguracja.");
+				alert.showAndWait();
+			}
+        }
+	}
+
+    private void saveProfile() {
+    	FileChooser fileChooser = new FileChooser();
+		fileChooser.setTitle("Wybierz miejsce na dysku, gdzie chcesz zapisac konfiguracje");
+		fileChooser.getExtensionFilters().add(
+		        new FileChooser.ExtensionFilter("JSON", "*.json")
+		    );
+		File file = fileChooser.showSaveDialog(null);
+		if (file != null) {
+			ObjectMapper mapper = new ObjectMapper();
+			try {
+				updateConfig();
+				mapper.writeValue(new File(file.getAbsolutePath()), config);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+	}
+
+    private void updateConfig() {
+
+    	config.setPath(imagePath);
+    	config.setImages(imageList);
+    	config.setKernel(kernelBox.getValue());
+    	config.setMetrics(metricsBox.getValue());
+		config.setSpatialPar(Integer.parseInt(spacialParameterBox.getText()));
+    	config.setRangePar(Integer.parseInt(rangeParameterBox.getText()));
+    	config.setMaxIters(Integer.parseInt(iterationNumberBox.getText()));
+    	config.setMinShift(Integer.parseInt(convergenceBox.getText()));
     }
 
 }

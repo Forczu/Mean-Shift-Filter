@@ -1,0 +1,10 @@
+﻿{
+	"path": "C://Rysunki",
+	"images": ["megumi.png"],
+	"kernel": "Gaussa",
+	"metrics": "Euklidesowa",
+	"spatialPar": 12,
+	"rangePar": 8,
+	"maxIters": 5,
+	"minShift": 2
+}
