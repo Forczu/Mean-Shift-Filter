@@ -28,6 +28,8 @@ public abstract class MeanShiftTask extends Task<Image> {
 	protected int minShift;
 	protected Metrics metrics;
 	protected int width;
+	
+	protected static long algorithmProgress = 0;
 
 	protected ColorProcesser colorProcesser = null;
 
@@ -82,6 +84,7 @@ public abstract class MeanShiftTask extends Task<Image> {
 	 */
 	public LuvPixel[] filter() {
         stopWatch.start();
+		algorithmProgress = 0;
 		updateMessage(String.valueOf(stopWatch.elapsedTime()));
 		updateTitle("Trwa filtrowanie...");
 
@@ -89,6 +92,7 @@ public abstract class MeanShiftTask extends Task<Image> {
 		int[][] pixels = colorProcesser.getPixelArray(image);
 		LuvPixel[] luv = colorProcesser.getLuvArray(pixels);
 		LuvPixel[] processedPixels = process(pixels, luv);
+		
 		return processedPixels;
 	}
 
@@ -97,13 +101,15 @@ public abstract class MeanShiftTask extends Task<Image> {
 	 * Wygadzenie obrazu wg algorytmu MS.
 	 * @param pixels wejsciowe piksele RGB
 	 * @param luv wejsciowe piksele LUV
-	 * @return wyjsciowe piksele LUV
+	 * @param outImageLuv wyjsciowe piksele LUV
+	 * @param start Indeks poczatku tablicy
+	 * @param end Indeks konca tablicy
 	 */
-	LuvPixel[] meanShiftFiltration(int[][] pixels, LuvPixel[] luv) {
+	public void meanShiftFiltration(int[][] pixels, LuvPixel[] luv, LuvPixel[] outImageLuv, int start, int end) {
 
 		LOGGER.info("START MEAN SHIFT ALGORITHM");
 
-		LuvPixel[] outImage = new LuvPixel[luv.length];
+		//LuvPixel[] outImage = new LuvPixel[luv.length];
 		int width = pixels.length;
 		int height = pixels[0].length;
 
@@ -112,13 +118,10 @@ public abstract class MeanShiftTask extends Task<Image> {
 		int hrad = spatialPar;
 		int hcolor = rangePar;
 		int pixelNumber = luv.length;
-		updateProgress(0, pixelNumber);
-
-		int threadsCount = Runtime.getRuntime().availableProcessors();
-		// TODO: przekazac tablicy pikseli do kazdego watku
+		updateProgress(algorithmProgress++, pixelNumber);
 
 		// dla kazdego piksela
-		for (int i = 0; i < pixelNumber; i++) {
+		for (int i = start; i < end; i++) {
 
 			// pobierz aktualna pozycje piksela
 			int xWindowCenterPosition = (int) luv[i].getPos().x();
@@ -197,13 +200,12 @@ public abstract class MeanShiftTask extends Task<Image> {
 				iters++;
 			} while (shift > minShift && iters < maxIters);
 
-			outImage[i] = new LuvPixel(luv[i].getPos(), Color.getInstance(pointColorL, pointColorU, pointColorV));
-			updateProgress(i, pixelNumber);
+			outImageLuv[i] = new LuvPixel(luv[i].getPos(), Color.getInstance(pointColorL, pointColorU, pointColorV));
+			updateProgress(algorithmProgress++, pixelNumber);
 			updateMessage(String.valueOf(stopWatch.elapsedTime()));
 
 		}
 		LOGGER.info("MEAN SHIFT ALGORITHM FINISHED AND START SEGMENTATION");
-		return outImage;
 	}
 
 }

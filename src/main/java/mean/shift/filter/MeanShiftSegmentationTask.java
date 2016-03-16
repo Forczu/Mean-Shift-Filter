@@ -9,6 +9,9 @@ import mean.shift.kernel.Kernel;
 import mean.shift.processing.Color;
 import mean.shift.processing.LuvPixel;
 import mean.shift.processing.Metrics;
+import mean.shift.thread.BaseThread;
+import mean.shift.thread.MeanShiftThread;
+import mean.shift.thread.SegmentationThread;
 
 public class MeanShiftSegmentationTask extends MeanShiftTask {
 
@@ -18,12 +21,62 @@ public class MeanShiftSegmentationTask extends MeanShiftTask {
 	}
 
 	@Override
-	protected LuvPixel[] process(int[][] pixels, LuvPixel[] luvInputImage) {
-		LuvPixel[] outImage = meanShiftFiltration(pixels, luvInputImage);
+	public LuvPixel[] process(int[][] pixels, LuvPixel[] luvInputImage) {
+		LuvPixel[] luvOutputImage = new LuvPixel[luvInputImage.length];
+
+		int threadsCount = Runtime.getRuntime().availableProcessors();
+		int segmentSize = luvInputImage.length / threadsCount;
+		BaseThread[] threads = new BaseThread[threadsCount];
+		
+		for (int i = 0; i < threadsCount; i++) {
+			int start = i * segmentSize;
+			int end = start + segmentSize;
+			
+			// Jesli ilosc pikseli LUV nie jest podzielna przez ilosc rdzeni, ostatni bedzie murzynem
+			if (i == threadsCount - 1)
+				end += luvInputImage.length % threadsCount;
+			
+			threads[i] = new MeanShiftThread(pixels, luvInputImage, luvOutputImage, this, start, end);
+		}
+		
+		try {
+			for (Thread thread : threads) {
+				thread.start();
+			}
+			for (Thread thread : threads) {
+				thread.join();
+			}
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		
 		updateTitle("Trwa segmentacja...");
-		segmentationAlgorithm(pixels, luvInputImage, outImage);
+		algorithmProgress = 0;
+		
+		for (int i = 0; i < threadsCount; i++) {
+			int start = i * segmentSize;
+			int end = start + segmentSize;
+			
+			// Jesli ilosc pikseli LUV nie jest podzielna przez ilosc rdzeni, ostatni bedzie murzynem
+			if (i == threadsCount - 1)
+				end += luvInputImage.length % threadsCount;
+			
+			threads[i] = new SegmentationThread(pixels, luvInputImage, luvOutputImage, this, start, end);
+		}
+		
+		try {
+			for (Thread thread : threads) {
+				thread.start();
+			}
+			for (Thread thread : threads) {
+				thread.join();
+			}
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
 		LOGGER.info("SEGMENTATION FINISHED");
-		return outImage;
+		
+		return luvOutputImage;
 	}
 
 
@@ -33,16 +86,16 @@ public class MeanShiftSegmentationTask extends MeanShiftTask {
 	 * @param luvInputImage wejsciowe piksele LUV
 	 * @param luvOutputImage wyjsciowe piksele LUV
 	 */
-	void segmentationAlgorithm(int[][] pixels, LuvPixel[] luvInputImage, LuvPixel[] luvOutputImage) {
+	public void segmentationAlgorithm(int[][] pixels, LuvPixel[] luvInputImage, LuvPixel[] luvOutputImage, int start, int end) {
 		int width = pixels.length;
 		int height = pixels[0].length;
 		int pixelRange = spatialPar;
 		int colorRange = rangePar;
 		int pixelNumber = luvInputImage.length;
 		List<HashSet<LuvPixel>> clusters = new ArrayList<>();
-		updateProgress(0, pixelNumber);
+		updateProgress(algorithmProgress++, pixelNumber);
 
-		for (int i = 0; i < pixelNumber; i++) {
+		for (int i = start; i < end; i++) {
 			int xPixel = (int) luvOutputImage[i].getPos().x();
 			int yPixel = (int) luvOutputImage[i].getPos().y();
 			HashSet<LuvPixel> actualCluster;
@@ -71,6 +124,7 @@ public class MeanShiftSegmentationTask extends MeanShiftTask {
 							if (pixelInSpatialDistance(xDistance, yDistance, pixelRange)) {
 								int pixelIndex = pixelPositionYInWindow * width + pixelPositionXInWindow;
 								Color color = luvOutputImage[pixelIndex].getColor();
+								
 								if (pixelInColorDistance(actualPixelColor, color, colorRange))
 									actualCluster.add(luvOutputImage[pixelIndex]);
 							}
@@ -79,7 +133,7 @@ public class MeanShiftSegmentationTask extends MeanShiftTask {
 					}
 				}
 			}
-			updateProgress(i, pixelNumber);
+			updateProgress(algorithmProgress++, pixelNumber);
 			updateMessage(String.valueOf(stopWatch.elapsedTime()));
 		}
 		coloringPixelsInClusters(clusters);
