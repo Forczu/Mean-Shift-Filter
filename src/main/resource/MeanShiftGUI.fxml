@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ChoiceBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Menu?>
+<?import javafx.scene.control.MenuBar?>
+<?import javafx.scene.control.MenuItem?>
+<?import javafx.scene.control.ProgressBar?>
+<?import javafx.scene.control.RadioButton?>
+<?import javafx.scene.control.SeparatorMenuItem?>
+<?import javafx.scene.control.SplitPane?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.ToggleGroup?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<AnchorPane fx:id="mainPane" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minHeight="-Infinity" minWidth="-Infinity" prefHeight="640.0" prefWidth="900.0" xmlns="http://javafx.com/javafx/8.0.65" xmlns:fx="http://javafx.com/fxml/1" fx:controller="mean.shift.controller.WindowController">
+   <children>
+      <SplitPane fx:id="mainSplitPane" dividerPositions="0.375, 0.625" prefHeight="160.0" prefWidth="200.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+        <items>
+            <AnchorPane fx:id="leftPane" maxHeight="-Infinity" maxWidth="-Infinity">
+               <children>
+                  <ImageView fx:id="leftImageView" fitHeight="400.0" fitWidth="300.0" pickOnBounds="true" preserveRatio="true" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0" />
+               </children>
+            </AnchorPane>
+            <VBox alignment="CENTER" prefHeight="500.0" prefWidth="442.0" spacing="10">
+               <children>
+                  <Button id="leftImageBtn" fx:id="leftImageBtn" mnemonicParsing="false" onAction="#handleLeftImageButtonAction" prefWidth="140.0" text="&lt;- Rysunek" />
+                  <VBox alignment="CENTER" prefHeight="250.0" prefWidth="100.0">
+                     <children>
+                        <Label text="Parametr przestrzeni (spatial)" />
+                        <TextField fx:id="spacialParameterBox" maxWidth="-Infinity" prefWidth="140.0" text="1" />
+                        <Label text="Parametr zakresu (range)" />
+                        <TextField fx:id="rangeParameterBox" maxWidth="-Infinity" prefWidth="140.0" text="1" />
+                        <Label text="Liczba iteracji" />
+                        <TextField fx:id="iterationNumberBox" maxWidth="-Infinity" prefWidth="140.0" text="1" />
+                        <Label text="Warunek zbieżności" />
+                        <TextField id="convergenceBox" fx:id="convergenceBox" maxWidth="-Infinity" prefWidth="140.0" text="2" />
+                        <Label text="Metryka" />
+                        <ChoiceBox fx:id="metricsBox" maxWidth="-Infinity" prefWidth="140.0" />
+                        <Label text="Kernel" />
+                        <ChoiceBox fx:id="kernelBox" maxWidth="-Infinity" prefWidth="140.0" />
+                     </children>
+                     <opaqueInsets>
+                        <Insets />
+                     </opaqueInsets>
+                  </VBox>
+                  <VBox alignment="CENTER_LEFT" maxHeight="-Infinity" maxWidth="-Infinity" prefHeight="37.0" prefWidth="140.0">
+                     <children>
+                        <RadioButton fx:id="filtrationRadioBtn" mnemonicParsing="false" selected="true" text="Filtracja">
+                           <toggleGroup>
+                              <ToggleGroup fx:id="filters" />
+                           </toggleGroup></RadioButton>
+                        <RadioButton fx:id="segmentationRadioBtn" mnemonicParsing="false" text="Segmentacja" toggleGroup="$filters" />
+                     </children>
+                  </VBox>
+                  <Button fx:id="runBtn" mnemonicParsing="false" prefWidth="140.0" text="Wykonaj" />
+               	  <Button id="rightImageBtn" fx:id="rightImageBtn" disable="true" mnemonicParsing="false" onAction="#handleRightImageButtonAction" prefWidth="140.0" text="Zapisz" />
+                  <ProgressBar fx:id="progressBar" prefWidth="200.0" progress="0.0" />
+                  <Label fx:id="ProcessTypeMessage" />
+                  <VBox maxWidth="-Infinity" prefHeight="50.0" prefWidth="200.0">
+                     <children>
+                        <HBox alignment="CENTER_LEFT" spacing="5">
+      	                  <children>
+      		                  <Label text="Czas przetwarzania:" />
+      		                  <Label fx:id="timerLabel" />
+      	                  </children>
+                        </HBox>
+                     </children>
+                  </VBox>
+               </children>
+            </VBox>
+            <AnchorPane maxHeight="-Infinity" maxWidth="-Infinity">
+               <children>
+                  <ImageView fx:id="rightImageView" fitHeight="400.0" fitWidth="300.0" pickOnBounds="true" preserveRatio="true" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0" />
+               </children>
+            </AnchorPane>
+        </items>
+      </SplitPane>
+
+      <MenuBar AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0">
+        <menus>
+          <Menu mnemonicParsing="false" text="File">
+            <items>
+              <MenuItem onAction="#handleOpenMenuItem" text="Open" />
+              <MenuItem fx:id="saveMenuItem" disable="true" onAction="#handleSaveMenuItem" text="Save" />
+               <SeparatorMenuItem />
+              <MenuItem mnemonicParsing="false" onAction="#handleCloseMenuItem" text="Close" />
+            </items>
+          </Menu>
+          <Menu mnemonicParsing="false" text="Edit">
+            <items>
+              <MenuItem mnemonicParsing="false" text="Delete" />
+            </items>
+          </Menu>
+          <Menu mnemonicParsing="false" text="Help">
+            <items>
+              <MenuItem mnemonicParsing="false" text="About" />
+            </items>
+          </Menu>
+        </menus>
+      </MenuBar>
+
+   </children>
+</AnchorPane>

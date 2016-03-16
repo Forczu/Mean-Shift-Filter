@@ -49,7 +49,7 @@ public abstract class MeanShiftTask extends Task<Image> {
 	@Override
 	protected Image call() throws Exception {
 		LuvPixel[] filtered = filter();
-		updateTitle("Zakoñczono przetwarzanie");
+		updateTitle("Zakonczono przetwarzanie");
 		return convertPixelToImage(filtered);
 	}
 

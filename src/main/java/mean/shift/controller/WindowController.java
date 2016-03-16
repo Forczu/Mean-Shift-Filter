@@ -31,8 +31,10 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.AnchorPane;
 import javafx.stage.FileChooser;
 import mean.shift.filter.MeanShift;
+import mean.shift.kernel.GaussianKernel;
 import mean.shift.kernel.Kernel;
 import mean.shift.kernel.KernelFactory;
+import mean.shift.kernel.RectangularKernel;
 import mean.shift.processing.Metrics;
 import mean.shift.processing.MetricsFactory;
 
@@ -186,7 +188,7 @@ public class WindowController implements Initializable {
 		configureAsNumericBox(iterationNumberBox);
 		configureAsNumericBox(convergenceBox);
 		configureRunButton();
-		kernelBox.setItems(FXCollections.observableArrayList("Gaussa", "Prostokπtny"));
+		kernelBox.setItems(FXCollections.observableArrayList(GaussianKernel.getName(), RectangularKernel.getName()));
 		kernelBox.getSelectionModel().selectFirst();
 		metricsBox.setItems(FXCollections.observableArrayList("Euklidesowa", "Manhattan"));
 		metricsBox.getSelectionModel().selectFirst();
@@ -276,7 +278,7 @@ public class WindowController implements Initializable {
 	}
 
 	/**
-	 * Dodaje style do poszczegÛlnych kontrolek widoku.
+	 * Dodaje style do poszczegƒè≈ºÀùlnych kontrolek widoku.
 	 */
 	private void applyCSS() {
 

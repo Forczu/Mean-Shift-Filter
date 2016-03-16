@@ -40,7 +40,7 @@ public class Main extends Application {
          
             scene.getStylesheets().add(this.getClass().getResource("./view/css/application.css").toExternalForm());   		
             
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
         

@@ -61,7 +61,7 @@ public class ColorProcesser {
 		double g = toPivotRgb(G);
 		double b = toPivotRgb(B);
 
-        // Observer. = 2‹, Illuminant = D65
+        // Observer. = 2, Illuminant = D65
 		// RGB -> XYZ
 		double X = r * 0.4124 + g * 0.3576 + b * 0.1805;
 		double Y = r * 0.2126 + g * 0.7152 + b * 0.0722;

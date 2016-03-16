@@ -13,8 +13,8 @@ public class KernelFactory {
 
 	static {
 		try {
-			Register("Gaussa", GaussianKernel.class.getMethod("getInstance", (Class<?>[])null));
-			Register("Prostok¹tny", RectangularKernel.class.getMethod("getInstance", (Class<?>[])null));
+			Register(GaussianKernel.getName(), GaussianKernel.class.getMethod("getInstance", (Class<?>[])null));
+			Register(RectangularKernel.getName(), RectangularKernel.class.getMethod("getInstance", (Class<?>[])null));
 		} catch (NoSuchMethodException e) {
 			e.printStackTrace();
 		} catch (SecurityException e) {

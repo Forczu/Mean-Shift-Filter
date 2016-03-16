@@ -7,6 +7,11 @@ public class GaussianKernel implements Kernel{
 		return new GaussianKernel();
 	}
 
+	public static String getName() {
+		return "Gaussa";
+	}
+
+	
 	@Override
 	public float calculate(float distance, int range) {
 		return (float)Math.exp(-0.5*Math.pow(distance/range, 2));

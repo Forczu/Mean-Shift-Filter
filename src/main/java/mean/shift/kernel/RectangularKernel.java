@@ -6,6 +6,10 @@ public class RectangularKernel implements Kernel {
 	public static Kernel getInstance() {
 		return new RectangularKernel();
 	}
+	
+	public static String getName() {
+		return "Prostokatny";
+	}
 
 	@Override
 	public float calculate(float distance, int range) {
