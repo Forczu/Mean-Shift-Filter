@@ -6,7 +6,6 @@ import java.util.HashSet;
 import java.util.List;
 
 import javafx.scene.image.Image;
-import mean.shift.kernel.Kernel;
 import mean.shift.metrics.Metrics;
 import mean.shift.processing.Color;
 import mean.shift.processing.LuvPixel;

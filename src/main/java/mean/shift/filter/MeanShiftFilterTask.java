@@ -1,7 +1,6 @@
 package mean.shift.filter;
 
 import javafx.scene.image.Image;
-import mean.shift.kernel.Kernel;
 import mean.shift.processing.LuvPixel;
 import mean.shift.processing.MeanShiftParameter;
 import mean.shift.thread.BaseThread;

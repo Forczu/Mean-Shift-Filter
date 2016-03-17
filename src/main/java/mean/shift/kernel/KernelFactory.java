@@ -1,4 +1,4 @@
-package mean.shift.kernel;
+ 	package mean.shift.kernel;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -15,6 +15,7 @@ public class KernelFactory {
 		try {
 			Register(GaussianKernel.getName(), GaussianKernel.class.getMethod("getInstance", (Class<?>[])null));
 			Register(RectangularKernel.getName(), RectangularKernel.class.getMethod("getInstance", (Class<?>[])null));
+			Register(EpanechnikovKernel.getName(), EpanechnikovKernel.class.getMethod("getInstance", (Class<?>[])null));
 		} catch (NoSuchMethodException e) {
 			e.printStackTrace();
 		} catch (SecurityException e) {

@@ -44,6 +44,7 @@ import mean.shift.kernel.GaussianKernel;
 import mean.shift.kernel.Kernel;
 import mean.shift.kernel.KernelFactory;
 import mean.shift.kernel.RectangularKernel;
+import mean.shift.kernel.EpanechnikovKernel;
 import mean.shift.metrics.EuclideanMetrics;
 import mean.shift.metrics.ManhattanMetrics;
 import mean.shift.metrics.Metrics;
@@ -234,7 +235,9 @@ public class WindowController implements Initializable {
 		configureAsNumericBox(iterationNumberBox);
 		configureAsNumericBox(convergenceBox);
 		configureRunButton();
-		kernelBox.setItems(FXCollections.observableArrayList(GaussianKernel.getName(), RectangularKernel.getName()));
+		kernelBox.setItems(FXCollections.observableArrayList(GaussianKernel.getName(),
+							RectangularKernel.getName(),
+							EpanechnikovKernel.getName()));
 		kernelBox.getSelectionModel().selectFirst();
 		metricsBox.setItems(FXCollections.observableArrayList(EuclideanMetrics.getName(), ManhattanMetrics.getName()));
 		metricsBox.getSelectionModel().selectFirst();
