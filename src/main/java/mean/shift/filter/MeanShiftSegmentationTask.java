@@ -135,7 +135,7 @@ public class MeanShiftSegmentationTask extends MeanShiftTask {
 				}
 			}
 			updateProgress(algorithmProgress++, pixelNumber);
-			updateMessage(String.valueOf(stopWatch.elapsedTime()));
+			updateMessage(stopWatch.getFormattedTime());
 		}
 		coloringPixelsInClusters(clusters);
 	}

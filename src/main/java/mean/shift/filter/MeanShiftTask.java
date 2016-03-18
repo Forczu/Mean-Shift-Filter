@@ -84,7 +84,7 @@ public abstract class MeanShiftTask extends Task<Image> {
 	public LuvPixel[] filter() {
         stopWatch.start();
 		algorithmProgress = 0;
-		updateMessage(String.valueOf(stopWatch.elapsedTime()));
+		updateMessage(stopWatch.getFormattedTime());
 		updateTitle("Trwa filtrowanie...");
 
 		LOGGER.info("START MEAN SHIFT PROCESSING");
@@ -201,7 +201,7 @@ public abstract class MeanShiftTask extends Task<Image> {
 
 			outImageLuv[i] = new LuvPixel(luv[i].getPos(), Color.getInstance(pointColorL, pointColorU, pointColorV));
 			updateProgress(algorithmProgress++, pixelNumber);
-			updateMessage(String.valueOf(stopWatch.elapsedTime()));
+			updateMessage(stopWatch.getFormattedTime());
 
 		}
 		LOGGER.info("MEAN SHIFT ALGORITHM FINISHED AND START SEGMENTATION");

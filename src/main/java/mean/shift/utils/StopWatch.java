@@ -22,8 +22,16 @@ public class StopWatch {
     	start = 0;
     }
 
-    public double elapsedTime() {
+    public double getElapsedTime() {
         long now = System.currentTimeMillis();
         return (now - start) / 1000.0;
+    }
+    
+    public String getFormattedTime() {
+    	double elapsedTime = getElapsedTime();
+    	int minutes = (int)((int)elapsedTime / 60.0f);
+    	short seconds = (short)((int)elapsedTime % 60.0f);
+    	
+    	return String.format("%02d", minutes) + ":" + String.format("%02d", seconds);
     }
 }
