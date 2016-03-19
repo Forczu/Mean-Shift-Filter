@@ -40,11 +40,11 @@ import javafx.scene.layout.AnchorPane;
 import javafx.stage.FileChooser;
 import mean.shift.filter.MeanShift;
 import mean.shift.filter.MeanShiftTask;
+import mean.shift.kernel.BiweightKernel;
+import mean.shift.kernel.EpanechnikovKernel;
 import mean.shift.kernel.GaussianKernel;
 import mean.shift.kernel.Kernel;
 import mean.shift.kernel.KernelFactory;
-import mean.shift.kernel.RectangularKernel;
-import mean.shift.kernel.EpanechnikovKernel;
 import mean.shift.metrics.EuclideanMetrics;
 import mean.shift.metrics.ManhattanMetrics;
 import mean.shift.metrics.Metrics;
@@ -236,8 +236,7 @@ public class WindowController implements Initializable {
 		configureAsNumericBox(convergenceBox);
 		configureRunButton();
 		kernelBox.setItems(FXCollections.observableArrayList(GaussianKernel.getName(),
-							RectangularKernel.getName(),
-							EpanechnikovKernel.getName()));
+							EpanechnikovKernel.getName(), BiweightKernel.getName()));
 		kernelBox.getSelectionModel().selectFirst();
 		metricsBox.setItems(FXCollections.observableArrayList(EuclideanMetrics.getName(), ManhattanMetrics.getName()));
 		metricsBox.getSelectionModel().selectFirst();

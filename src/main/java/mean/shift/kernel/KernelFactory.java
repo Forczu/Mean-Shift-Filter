@@ -14,8 +14,8 @@ public class KernelFactory {
 	static {
 		try {
 			Register(GaussianKernel.getName(), GaussianKernel.class.getMethod("getInstance", (Class<?>[])null));
-			Register(RectangularKernel.getName(), RectangularKernel.class.getMethod("getInstance", (Class<?>[])null));
 			Register(EpanechnikovKernel.getName(), EpanechnikovKernel.class.getMethod("getInstance", (Class<?>[])null));
+			Register(BiweightKernel.getName(), BiweightKernel.class.getMethod("getInstance", (Class<?>[])null));
 		} catch (NoSuchMethodException e) {
 			e.printStackTrace();
 		} catch (SecurityException e) {
