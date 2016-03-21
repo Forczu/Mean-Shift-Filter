@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import javafx.scene.image.Image;
 import mean.shift.metrics.Metrics;
@@ -74,7 +75,7 @@ public class MeanShiftSegmentationTask extends MeanShiftTask {
 		int width = pixels.length;
 		int height = pixels[0].length;
 		int pixelRange = 3;
-		int colorRange = rangePar;
+		int colorRange = 3;
 		int pixelNumber = luvInputImage.length;
 		int clusterCount = 0;
 		List<HashSet<LuvPixel>> clusters = new ArrayList<>();
@@ -82,10 +83,10 @@ public class MeanShiftSegmentationTask extends MeanShiftTask {
 		int[] assigned = new int[pixelNumber];
 		Arrays.fill(assigned, -1);
 		LOGGER.debug("Start");
-
 		for (int i = 0; i < pixelNumber; i++) {
 			LOGGER.debug("Petla " + i);
 			LOGGER.debug("ASSIGNED = " + assigned[i]);
+			Set<Integer> pixelIndexsToDBScanFunction = new HashSet<>();
 			int xPixel = (int) luvOutputImage[i].getPos().x();
 			int yPixel = (int) luvOutputImage[i].getPos().y();
 			HashSet<LuvPixel> actualCluster;
@@ -97,47 +98,91 @@ public class MeanShiftSegmentationTask extends MeanShiftTask {
 				clusters.add(cluster);
 				actualCluster = cluster;
 				assigned[i] = clusterCount++;
-			} else {
-				actualCluster = clusters.get(assigned[i]);
+				// else {
+				// actualCluster = clusters.get(assigned[i]);
+				//
+				// }
 
-			}
-//			 for (HashSet<LuvPixel> cluster : clusters) {
-//			 if (cluster.contains(luvOutputImage[i])) {
-//			 actualCluster = cluster;
-//			 break;
-//			 }
-//			 }
-//			 if (actualCluster == null) {
-//			 HashSet<LuvPixel> cluster = new HashSet<LuvPixel>();
-//			 cluster.add(luvOutputImage[i]);
-//			 clusters.add(cluster);
-//			 actualCluster = cluster;
-//			 }
+				for (int yDistance = -pixelRange; yDistance <= pixelRange; ++yDistance) {
+					int pixelPositionYInWindow = countCheckedPixelPosition(yPixel, yDistance);
+					if (pixelInImage(pixelPositionYInWindow, height)) {
+						for (int xDistance = -pixelRange; xDistance <= pixelRange; ++xDistance) {
+							int pixelPositionXInWindow = countCheckedPixelPosition(xPixel, xDistance);
+							if (pixelInImage(pixelPositionXInWindow, width)) {
+								if (pixelInSpatialDistance(xDistance, yDistance, pixelRange)) {
+									int pixelIndex = pixelPositionYInWindow * width + pixelPositionXInWindow;
+									Color color = luvOutputImage[pixelIndex].getColor();
 
-			for (int yDistance = -pixelRange; yDistance <= pixelRange; ++yDistance) {
-				int pixelPositionYInWindow = countCheckedPixelPosition(yPixel, yDistance);
-				if (pixelInImage(pixelPositionYInWindow, height)) {
-					for (int xDistance = -pixelRange; xDistance <= pixelRange; ++xDistance) {
-						int pixelPositionXInWindow = countCheckedPixelPosition(xPixel, xDistance);
-						if (pixelInImage(pixelPositionXInWindow, width)) {
-							if (pixelInSpatialDistance(xDistance, yDistance, pixelRange)) {
-								int pixelIndex = pixelPositionYInWindow * width + pixelPositionXInWindow;
-								Color color = luvOutputImage[pixelIndex].getColor();
-
-								if (pixelInColorDistance(actualPixelColor, color, colorRange)) {
-									actualCluster.add(luvOutputImage[pixelIndex]);
-									assigned[pixelIndex] = assigned[i];
+									if (pixelInColorDistance(actualPixelColor, color, colorRange)) {
+										if (assigned[pixelIndex] < 0) {
+											actualCluster.add(luvOutputImage[pixelIndex]);
+											assigned[pixelIndex] = assigned[i];
+											pixelIndexsToDBScanFunction.add(pixelIndex);
+										}
+									}
 								}
 							}
-						}
 
+						}
 					}
+				}
+				try {
+					HashSet<Integer> pixelIndexs = new HashSet<>();
+					do {
+						pixelIndexs.clear();
+						for (Integer pixelIndex : pixelIndexsToDBScanFunction) {
+							LOGGER.debug("Pixels: " + pixelIndex);
+							pixelIndexs.addAll(dbscanClusteringFunction(pixelIndex, height, width, pixelRange,
+									colorRange, luvOutputImage, actualCluster, assigned));
+						}
+						pixelIndexsToDBScanFunction.clear();
+						pixelIndexsToDBScanFunction.addAll(pixelIndexs);
+					} while (!pixelIndexs.isEmpty());
+				} catch (Exception e) {
+					LOGGER.debug("EXCEPTION: " + e.toString());
 				}
 			}
 			updateProgress(algorithmProgress++, pixelNumber);
 			updateMessage(stopWatch.getFormattedTime());
+
 		}
 		coloringPixelsInClusters(clusters);
+	}
+
+	private HashSet<Integer> dbscanClusteringFunction(int actualPixelIndex, int height, int width, int pixelRange,
+			int colorRange, LuvPixel[] luvOutputImage, HashSet<LuvPixel> actualCluster, int[] assigned) {
+		updateMessage(stopWatch.getFormattedTime());
+		HashSet<Integer> pixelIndexsToDBScanFunction = new HashSet<>();
+		int xPixel = (int) luvOutputImage[actualPixelIndex].getPos().x();
+		int yPixel = (int) luvOutputImage[actualPixelIndex].getPos().y();
+		Color actualPixelColor = luvOutputImage[actualPixelIndex].getColor();
+		for (int yDistance = -pixelRange; yDistance <= pixelRange; ++yDistance) {
+			int pixelPositionYInWindow = countCheckedPixelPosition(yPixel, yDistance);
+			if (pixelInImage(pixelPositionYInWindow, height)) {
+				for (int xDistance = -pixelRange; xDistance <= pixelRange; ++xDistance) {
+					int pixelPositionXInWindow = countCheckedPixelPosition(xPixel, xDistance);
+					if (pixelInImage(pixelPositionXInWindow, width)) {
+						if (pixelInSpatialDistance(xDistance, yDistance, pixelRange)) {
+							int pixelIndex = pixelPositionYInWindow * width + pixelPositionXInWindow;
+							Color color = luvOutputImage[pixelIndex].getColor();
+
+							if (pixelInColorDistance(actualPixelColor, color, colorRange)) {
+								if (assigned[pixelIndex] < 0) {
+									actualCluster.add(luvOutputImage[pixelIndex]);
+									assigned[pixelIndex] = assigned[actualPixelIndex];
+									pixelIndexsToDBScanFunction.add(pixelIndex);
+									LOGGER.debug("PIXELS: " + pixelIndex);
+								}
+							}
+
+						}
+					}
+
+				}
+			}
+		}
+		updateMessage(stopWatch.getFormattedTime());
+		return pixelIndexsToDBScanFunction;
 	}
 
 	private void coloringPixelsInClusters(List<HashSet<LuvPixel>> clusters) {
