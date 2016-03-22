@@ -74,8 +74,8 @@ public class MeanShiftSegmentationTask extends MeanShiftTask {
 	public void segmentationAlgorithm(int[][] pixels, LuvPixel[] luvInputImage, LuvPixel[] luvOutputImage) {
 		int width = pixels.length;
 		int height = pixels[0].length;
-		int pixelRange = 3;
-		int colorRange = 3;
+		int pixelRange = spatialPar;
+		int colorRange = rangePar;
 		int pixelNumber = luvInputImage.length;
 		int clusterCount = 0;
 		List<HashSet<LuvPixel>> clusters = new ArrayList<>();
@@ -98,10 +98,6 @@ public class MeanShiftSegmentationTask extends MeanShiftTask {
 				clusters.add(cluster);
 				actualCluster = cluster;
 				assigned[i] = clusterCount++;
-				// else {
-				// actualCluster = clusters.get(assigned[i]);
-				//
-				// }
 
 				for (int yDistance = -pixelRange; yDistance <= pixelRange; ++yDistance) {
 					int pixelPositionYInWindow = countCheckedPixelPosition(yPixel, yDistance);
@@ -126,6 +122,8 @@ public class MeanShiftSegmentationTask extends MeanShiftTask {
 						}
 					}
 				}
+				updateProgress(algorithmProgress++, pixelNumber);
+				updateMessage(stopWatch.getFormattedTime());
 				try {
 					HashSet<Integer> pixelIndexs = new HashSet<>();
 					do {
@@ -133,7 +131,7 @@ public class MeanShiftSegmentationTask extends MeanShiftTask {
 						for (Integer pixelIndex : pixelIndexsToDBScanFunction) {
 							LOGGER.debug("Pixels: " + pixelIndex);
 							pixelIndexs.addAll(dbscanClusteringFunction(pixelIndex, height, width, pixelRange,
-									colorRange, luvOutputImage, actualCluster, assigned));
+									colorRange, luvOutputImage, actualCluster, assigned, pixelNumber));
 						}
 						pixelIndexsToDBScanFunction.clear();
 						pixelIndexsToDBScanFunction.addAll(pixelIndexs);
@@ -142,16 +140,14 @@ public class MeanShiftSegmentationTask extends MeanShiftTask {
 					LOGGER.debug("EXCEPTION: " + e.toString());
 				}
 			}
-			updateProgress(algorithmProgress++, pixelNumber);
-			updateMessage(stopWatch.getFormattedTime());
+
 
 		}
 		coloringPixelsInClusters(clusters);
 	}
 
 	private HashSet<Integer> dbscanClusteringFunction(int actualPixelIndex, int height, int width, int pixelRange,
-			int colorRange, LuvPixel[] luvOutputImage, HashSet<LuvPixel> actualCluster, int[] assigned) {
-		updateMessage(stopWatch.getFormattedTime());
+			int colorRange, LuvPixel[] luvOutputImage, HashSet<LuvPixel> actualCluster, int[] assigned, int pixelNumber) {
 		HashSet<Integer> pixelIndexsToDBScanFunction = new HashSet<>();
 		int xPixel = (int) luvOutputImage[actualPixelIndex].getPos().x();
 		int yPixel = (int) luvOutputImage[actualPixelIndex].getPos().y();
@@ -181,6 +177,7 @@ public class MeanShiftSegmentationTask extends MeanShiftTask {
 				}
 			}
 		}
+		updateProgress(algorithmProgress++, pixelNumber);
 		updateMessage(stopWatch.getFormattedTime());
 		return pixelIndexsToDBScanFunction;
 	}
