@@ -1,5 +1,10 @@
-package mean.shift.processing;
+package mean.shift.pixel;
 
+@Deprecated
+/**
+ * Kolor jest reprezentowany jako wektor floatow.
+ * @author Forczu
+ */
 public class Color {
 
 	private final float l;

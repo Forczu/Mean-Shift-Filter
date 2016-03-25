@@ -2,14 +2,14 @@ package mean.shift.filter;
 
 import java.util.HashSet;
 
-import mean.shift.processing.LuvPixel;
+import mean.shift.pixel.Pixel;
 
 public class ClusterPixel {
 
-	public LuvPixel pixel;
-	public HashSet<LuvPixel> cluster;
+	public Pixel pixel;
+	public HashSet<Pixel> cluster;
 	
-	public ClusterPixel(LuvPixel pixel){
+	public ClusterPixel(Pixel pixel){
 		this.pixel = pixel;
 		cluster = null;
 	}

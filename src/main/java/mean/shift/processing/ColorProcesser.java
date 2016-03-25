@@ -1,9 +1,9 @@
 package mean.shift.processing;
 
-import javafx.geometry.Point2D;
-import javafx.geometry.Point3D;
 import javafx.scene.image.Image;
 import javafx.scene.image.PixelReader;
+import mean.shift.pixel.Pixel;
+import mean.shift.pixel.Position;
 
 public class ColorProcesser {
 
@@ -37,11 +37,34 @@ public class ColorProcesser {
     	return pixelArray;
 	}
 
+	public int[][] getGrayByteArray(Image image) {
+    	PixelReader pr = image.getPixelReader();
+    	int width = (int)image.getWidth();
+    	int height = (int)image.getHeight();
+    	int[][] pixelArray = new int[width][height];
+    	for(int i = 0; i < width; ++i) {
+    		for(int j = 0; j < height; ++j) {
+    			int argb = pr.getArgb(i, j);
+    			int grayscale = 0xFF & argb;
+    			pixelArray[i][j] = grayscale;
+    		}
+    	}
+    	return pixelArray;
+	}
+
 	private float normalize(int color) {
 		return color / 255.0f;
 	}
 
 	private float[] toRgb(int argb) {
+		float[] color = new float[3];
+		color[0] = 0xFF & (argb >> 16);
+		color[1] = 0xFF & (argb >> 8 );
+		color[2] = 0xFF & (argb >> 0 );
+		return color;
+	}
+
+	private float[] toNormalizedRgb(int argb) {
 		float[] color = new float[3];
 		color[0] = normalize(0xFF & (argb >> 16));
 		color[1] = normalize(0xFF & (argb >> 8 ));
@@ -49,10 +72,17 @@ public class ColorProcesser {
 		return color;
 	}
 
+	private int toArgb(float ... rgb) {
+		int R = (int)rgb[0];
+		int G = (int)rgb[1];
+		int B = (int)rgb[2];
+		return 0xFF000000 | (R << 16 ) | (G << 8) | B;
+	}
+
 	public float[] rgbToLuv(int argb) {
 
 		// normalizacja RGB
-		float[] rgb = toRgb(argb);
+		float[] rgb = toNormalizedRgb(argb);
 		double R = rgb[0];
 		double G = rgb[1];
 		double B = rgb[2];
@@ -126,28 +156,52 @@ public class ColorProcesser {
 		return (n > 0.04045 ? Math.pow((n + 0.055) / 1.055, 2.4) : n / 12.92) * 100.0;
 	}
 
-	public LuvPixel[] getLuvArray(int[][] rgbArray) {
-    	// wczytanie zfiltrowanych pikseli; z_i, i = 1, 2, ... , n
+	public Pixel[] getLuvArray(int[][] rgbArray) {
 		int width = rgbArray.length;
 		int height = rgbArray[0].length;
-		LuvPixel[] luvArray = new LuvPixel[width * height];
+		Pixel[] luvArray = new Pixel[width * height];
     	for(int i = 0; i < width; ++i) {
     		for(int j = 0; j < height; ++j) {
     			float[] color = rgbToLuv(rgbArray[i][j]);
-    			luvArray[j * width + i] = new LuvPixel(i, j, color[0], color[1], color[2]);
+    			luvArray[j * width + i] = new Pixel(i, j, color[0], color[1], color[2]);
     		}
     	}
     	return luvArray;
 	}
 
-	public int[][] getRgbArray(LuvPixel[] luvArray, int width) {
+	public int[][] getRgbArray(Pixel[] luvArray, int width) {
 		int[][] rgbArray = new int[width][luvArray.length / width];
 		for (int i = 0; i < luvArray.length; i++) {
 			Position pos = luvArray[i].getPos();
-			Color color = luvArray[i].getColor();
-			int argb = luvToRgb(new float[]{color.l(), color.u(), color.v()});
+			float[] color = luvArray[i].getColorVector();
+			int argb = luvToRgb(color);
 			rgbArray[(int)pos.x()][(int)pos.y()] = argb;
 		}
 		return rgbArray;
+	}
+
+
+	public Pixel[] getGrayscaleArray(int[][] pixels) {
+		int width = pixels.length;
+		int height = pixels[0].length;
+		Pixel[] grayArray = new Pixel[width * height];
+    	for(int i = 0; i < width; ++i) {
+    		for(int j = 0; j < height; ++j) {
+    			grayArray[j * width + i] = new Pixel(i, j, pixels[i][j]);
+    		}
+    	}
+    	return grayArray;
+	}
+
+	public int[][] getGrayByteArray(Pixel[] pixels, int width) {
+		int[][] rawArray = new int[width][pixels.length / width];
+		for (int i = 0; i < pixels.length; i++) {
+			Position pos = pixels[i].getPos();
+			float[] color = pixels[i].getColorVector();
+			float singleColor = color[0];
+			int argb = toArgb(singleColor, singleColor, singleColor);
+			rawArray[(int)pos.x()][(int)pos.y()] = argb;
+		}
+		return rawArray;
 	}
 }

@@ -1,7 +1,7 @@
 package mean.shift.filter;
 
-import javafx.scene.image.Image;
-import mean.shift.processing.LuvPixel;
+import mean.shift.pixel.Pixel;
+import mean.shift.pixel.Pixel;
 import mean.shift.processing.MeanShiftParameter;
 import mean.shift.thread.BaseThread;
 import mean.shift.thread.MeanShiftThread;
@@ -13,8 +13,8 @@ public class MeanShiftFilterTask extends MeanShiftTask {
 	}
 
 	@Override
-	protected LuvPixel[] process(int[][] pixels, LuvPixel[] luvInputImage) {
-		LuvPixel[] outImage = new LuvPixel[luvInputImage.length];
+	protected Pixel[] process(int[][] pixels, Pixel[] luvInputImage) {
+		Pixel[] outImage = new Pixel[luvInputImage.length];
 
 		int threadsCount = Runtime.getRuntime().availableProcessors();
 		int segmentSize = luvInputImage.length / threadsCount;

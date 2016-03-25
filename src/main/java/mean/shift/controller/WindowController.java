@@ -400,13 +400,24 @@ public class WindowController implements Initializable {
 		File imageFile = new File(imagePath);
 		if (!imageFile.exists()) return null;
     	Image image = new Image(imageFile.toURI().toString());
+    	int channels;
+		try {
+			channels = ImageIO.read(imageFile).getRaster().getNumDataElements();
+			// jezeli istnieje kanal przezroczystosci, to go nie uwzgledniamy
+			if (channels == 2)
+				channels = 1;
+			else if (channels > 3)
+				channels = 3;
+		} catch (IOException e) {
+			return null;
+		}
     	int spatialPar = Integer.parseInt(spacialParameterBox.getText());
     	int rangePar = Integer.parseInt(rangeParameterBox.getText());
     	int maxIters = Integer.parseInt(iterationNumberBox.getText());
     	int minShift = Integer.parseInt(convergenceBox.getText());
     	Metrics metrics = MetricsFactory.getMetrics(metricsBox.getValue());
     	Kernel kernel = KernelFactory.getKernel(kernelBox.getValue());
-    	MeanShiftParameter parameter = new MeanShiftParameter(image, kernel, spatialPar, rangePar, maxIters, minShift, metrics);
+    	MeanShiftParameter parameter = new MeanShiftParameter(image, channels, kernel, spatialPar, rangePar, maxIters, minShift, metrics);
 
     	if (segmentationRadioBtn.isSelected()) {
     		return MeanShift.getInstance().createSegmentationWorker(parameter);

@@ -7,6 +7,7 @@ import mean.shift.metrics.Metrics;
 public class MeanShiftParameter {
 
 	private Image image;
+	private int channels;
 	private Kernel kernel;
 	private int spatialPar;
 	private int rangePar;
@@ -18,9 +19,10 @@ public class MeanShiftParameter {
 	}
 
 
-	public MeanShiftParameter(Image image, Kernel kernel, int spatialPar, int rangePar, int maxIters, int minShift,
-			Metrics metrics) {
+	public MeanShiftParameter(Image image, int channels, Kernel kernel, int spatialPar, int rangePar,
+			int maxIters, int minShift, Metrics metrics) {
 		this.image = image;
+		this.channels = channels;
 		this.kernel = kernel;
 		this.spatialPar = spatialPar;
 		this.rangePar = rangePar;
@@ -34,6 +36,12 @@ public class MeanShiftParameter {
 	}
 	public void setImage(Image image) {
 		this.image = image;
+	}
+	public int getChannels() {
+		return channels;
+	}
+	public void setChannels(int channels) {
+		this.channels = channels;
 	}
 	public Kernel getKernel() {
 		return kernel;

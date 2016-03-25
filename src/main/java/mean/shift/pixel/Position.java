@@ -1,4 +1,4 @@
-package mean.shift.processing;
+package mean.shift.pixel;
 
 public class Position {
 
