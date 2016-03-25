@@ -6,8 +6,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import mean.shift.pixel.Color;
-import mean.shift.pixel.Pixel;
 import mean.shift.pixel.Pixel;
 import mean.shift.processing.MeanShiftParameter;
 import mean.shift.thread.BaseThread;
@@ -70,7 +68,7 @@ public class MeanShiftSegmentationTask extends MeanShiftTask {
 	 *            wyjsciowe piksele LUV
 	 */
 	public void segmentationAlgorithm(int[][] pixels, Pixel[] luvInputImage, Pixel[] luvOutputImage) {
-		/*
+
 		int width = pixels.length;
 		int height = pixels[0].length;
 		int pixelRange = spatialPar;
@@ -90,7 +88,7 @@ public class MeanShiftSegmentationTask extends MeanShiftTask {
 			int yPixel = (int) luvOutputImage[i].getPos().y();
 			HashSet<Pixel> actualCluster;
 			actualCluster = null;
-			Color actualPixelColor = luvOutputImage[i].getColor();
+			float[] actualPixelColor = luvOutputImage[i].getColorVector();
 			if (assigned[i] < 0) {
 				HashSet<Pixel> cluster = new HashSet<Pixel>();
 				cluster.add(luvOutputImage[i]);
@@ -106,7 +104,7 @@ public class MeanShiftSegmentationTask extends MeanShiftTask {
 							if (pixelInImage(pixelPositionXInWindow, width)) {
 								if (pixelInSpatialDistance(xDistance, yDistance, pixelRange)) {
 									int pixelIndex = pixelPositionYInWindow * width + pixelPositionXInWindow;
-									Color color = luvOutputImage[pixelIndex].getColor();
+									float[] color = luvOutputImage[pixelIndex].getColorVector();
 
 									if (pixelInColorDistance(actualPixelColor, color, colorRange)) {
 										if (assigned[pixelIndex] < 0) {
@@ -142,15 +140,15 @@ public class MeanShiftSegmentationTask extends MeanShiftTask {
 
 
 		}
-		coloringPixelsInClusters(clusters);*/
+		coloringPixelsInClusters(clusters);
 	}
 
 	private HashSet<Integer> dbscanClusteringFunction(int actualPixelIndex, int height, int width, int pixelRange,
 			int colorRange, Pixel[] luvOutputImage, HashSet<Pixel> actualCluster, int[] assigned, int pixelNumber) {
 		HashSet<Integer> pixelIndexsToDBScanFunction = new HashSet<>();
-		/*int xPixel = (int) luvOutputImage[actualPixelIndex].getPos().x();
+		int xPixel = (int) luvOutputImage[actualPixelIndex].getPos().x();
 		int yPixel = (int) luvOutputImage[actualPixelIndex].getPos().y();
-		Color actualPixelColor = luvOutputImage[actualPixelIndex].getColor();
+		float[] actualPixelColor = luvOutputImage[actualPixelIndex].getColorVector();
 		for (int yDistance = -pixelRange; yDistance <= pixelRange; ++yDistance) {
 			int pixelPositionYInWindow = countCheckedPixelPosition(yPixel, yDistance);
 			if (pixelInImage(pixelPositionYInWindow, height)) {
@@ -159,7 +157,7 @@ public class MeanShiftSegmentationTask extends MeanShiftTask {
 					if (pixelInImage(pixelPositionXInWindow, width)) {
 						if (pixelInSpatialDistance(xDistance, yDistance, pixelRange)) {
 							int pixelIndex = pixelPositionYInWindow * width + pixelPositionXInWindow;
-							Color color = luvOutputImage[pixelIndex].getColor();
+							float[] color = luvOutputImage[pixelIndex].getColorVector();
 
 							if (pixelInColorDistance(actualPixelColor, color, colorRange)) {
 								if (assigned[pixelIndex] < 0) {
@@ -177,7 +175,7 @@ public class MeanShiftSegmentationTask extends MeanShiftTask {
 			}
 		}
 		updateProgress(algorithmProgress++, pixelNumber);
-		updateMessage(stopWatch.getFormattedTime());*/
+		updateMessage(stopWatch.getFormattedTime());
 		return pixelIndexsToDBScanFunction;
 	}
 
@@ -209,21 +207,14 @@ public class MeanShiftSegmentationTask extends MeanShiftTask {
 		return (pointDistance <= distance);
 	}
 
-	private boolean pixelInColorDistance(Color actualColor, Color secondColor, int range) {
-		float L2 = secondColor.l();
-		float U2 = secondColor.u();
-		float V2 = secondColor.v();
+	private boolean pixelInColorDistance(float[] actualColor, float[] secondColor, int range) {
 
-		float lPixel = actualColor.l();
-		float uPixel = actualColor.u();
-		float vPixel = actualColor.v();
+		float[] dColor = new float[channels];
+		for (int i = 0; i < dColor.length; i++) {
+			dColor[i] = actualColor[i] - secondColor[i];
+		}
 
-		float dL = lPixel - L2;
-		float dU = uPixel - U2;
-		float dV = vPixel - V2;
-
-		float colorDistance = metrics.getDistance(dL, dU, dV);
-		return (colorDistance <= range);
+		return metrics.isWithinDistance(range, dColor);
 	}
 
 }

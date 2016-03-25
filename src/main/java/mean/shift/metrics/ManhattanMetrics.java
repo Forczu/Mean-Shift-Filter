@@ -21,4 +21,13 @@ public class ManhattanMetrics implements Metrics {
 		return sum;
 	}
 
+	@Override
+	public boolean isWithinDistance(float distance, float... points) {
+		float sum = 0;
+		for (float point : points) {
+			sum += point;
+		}
+		return sum <= distance;
+	}
+
 }

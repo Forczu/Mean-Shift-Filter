@@ -124,12 +124,13 @@ public abstract class MeanShiftTask extends Task<Image> {
 		int width = pixels.length;
 		int height = pixels[0].length;
 
-		float shift = 0;
 		int iters = 0;
 		int hrad = spatialPar;
 		int hcolor = rangePar;
 		int pixelNumber = luv.length;
 		updateProgress(algorithmProgress++, pixelNumber);
+
+		float[] argVector = new float[channels + 2];
 
 		// dla kazdego piksela
 		for (int i = start; i < end; i++) {
@@ -153,7 +154,7 @@ public abstract class MeanShiftTask extends Task<Image> {
 				// wartosci przesuniecia
 				float windowShiftX = 0, windowShiftY = 0;
 				float[] pointColorShift = new float[channels];
-				float pointNum = 0.0f, colorNum = 0.0f;
+				float pointNum = 0, colorNum = 0;
 				// MEAN SHIFT (17)
 				for (int ry = -hrad; ry <= hrad; ry++) {
 					int y2 = yWindowCenterPosition + ry;
@@ -161,9 +162,10 @@ public abstract class MeanShiftTask extends Task<Image> {
 						for (int rx = -hrad; rx <= hrad; rx++) {
 							int x2 = xWindowCenterPosition + rx;
 							if (x2 >= 0 && x2 < width) {
-								float pointDistance = metrics.getDistance(ry, rx);
-								if (pointDistance <= hrad) {
+								float pointDistance = metrics.getDistance(rx, ry);
+								if (pointDistance  <= hrad) {
 									float[] pointColor2 = luv[y2 * width + x2].getColorVector();
+
 									float[] dColor = new float[channels];
 									for (int j = 0; j < dColor.length; j++) {
 										dColor[j] = pointColor[j] - pointColor2[j];
@@ -193,21 +195,13 @@ public abstract class MeanShiftTask extends Task<Image> {
 					pointColor[j] = (float)(pointColorShift[j] * (1.0f / colorNum));
 				}
 				// mean-shift
-				int dx = xWindowCenterPosition - xWindowCenterPositionOld;
-				int dy = yWindowCenterPosition - yWindowCenterPositionOld;
-				float[] dColor = new float[channels];
+				argVector[0] = xWindowCenterPosition - xWindowCenterPositionOld;
+				argVector[1] = yWindowCenterPosition - yWindowCenterPositionOld;
 				for (int j = 0; j < pointColor.length; j++) {
-					dColor[j] = pointColor[j] - oldPointColor[j];
+					argVector[j + 2] = pointColor[j] - oldPointColor[j];
 				}
-				float[] argVector = new float[channels + 2];
-				argVector[0] = dx;
-				argVector[1] = dy;
-				for (int j = 2; j < argVector.length; j++) {
-					argVector[j] = dColor[j - 2];
-				}
-				shift = metrics.getDistance(argVector);
 				iters++;
-			} while (shift > minShift && iters < maxIters);
+			} while (metrics.isWithinDistance(minShift, argVector) && iters < maxIters);
 
 			outImageLuv[i] = new Pixel(luv[i].getPos(), pointColor);
 			updateProgress(algorithmProgress++, pixelNumber);

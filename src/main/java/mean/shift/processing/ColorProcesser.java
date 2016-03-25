@@ -198,8 +198,8 @@ public class ColorProcesser {
 		for (int i = 0; i < pixels.length; i++) {
 			Position pos = pixels[i].getPos();
 			float[] color = pixels[i].getColorVector();
-			float singleColor = color[0];
-			int argb = toArgb(singleColor, singleColor, singleColor);
+			int gray = (int)(color[0]);
+			int argb = 0xFF000000 | (gray << 16 ) | (gray << 8) | gray;
 			rawArray[(int)pos.x()][(int)pos.y()] = argb;
 		}
 		return rawArray;
