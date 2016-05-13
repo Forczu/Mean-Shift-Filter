@@ -71,8 +71,8 @@ public class MeanShiftSegmentationTask extends MeanShiftTask {
 
 		int width = pixels.length;
 		int height = pixels[0].length;
-		int pixelRange = spatialPar;
-		int colorRange = rangePar;
+		int pixelRange = 3;
+		int colorRange = 3;
 		int pixelNumber = luvInputImage.length;
 		int clusterCount = 0;
 		List<HashSet<Pixel>> clusters = new ArrayList<>();
@@ -182,11 +182,8 @@ public class MeanShiftSegmentationTask extends MeanShiftTask {
 	private void coloringPixelsInClusters(List<HashSet<Pixel>> clusters) {
 		float[] color;
 		for (HashSet<Pixel> cluster : clusters) {
-			color = null;
+			color = cluster.iterator().next().getColorVector();
 			for (Pixel luvPixel : cluster) {
-				if (color == null) {
-					color = luvPixel.getColorVector();
-				}
 				luvPixel.setColorVector(color);
 			}
 		}

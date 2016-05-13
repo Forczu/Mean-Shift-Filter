@@ -56,9 +56,9 @@
                   <Button id="leftImageBtn" fx:id="leftImageBtn" mnemonicParsing="false" onAction="#handleLeftImageButtonAction" prefWidth="140.0" text="&lt;- Rysunek" />
                   <VBox alignment="CENTER" prefHeight="250.0" prefWidth="100.0">
                      <children>
-                        <Label text="Parametr przestrzeni (spatial)" />
+                        <Label text="Parametr sąsiedztwa" />
                         <TextField fx:id="spacialParameterBox" maxWidth="-Infinity" prefWidth="140.0" text="1" />
-                        <Label text="Parametr zakresu (range)" />
+                        <Label text="Parametr podobieństwa" />
                         <TextField fx:id="rangeParameterBox" maxWidth="-Infinity" prefWidth="140.0" text="1" />
                         <Label text="Liczba iteracji" />
                         <TextField fx:id="iterationNumberBox" maxWidth="-Infinity" prefWidth="140.0" text="1" />
