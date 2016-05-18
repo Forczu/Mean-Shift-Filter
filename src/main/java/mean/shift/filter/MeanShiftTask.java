@@ -109,6 +109,176 @@ public abstract class MeanShiftTask extends Task<Image> {
 	}
 
 
+
+	protected void colorFiltration(Pixel[] luv, Pixel[] outImageLuv, int start, int end,
+			int width, int height, int hrad, int hcolor, int pixelNumber) {
+
+		int iters = 0;
+		int xWindowCenterPosition, yWindowCenterPosition;
+		int xWindowCenterPositionOld, yWindowCenterPositionOld;
+		// stary color
+		float oldPointColorL, oldPointColorU, oldPointColorV;
+		// nowy kolor
+		float pointColorL, pointColorU, pointColorV, xWindowCenterPositionShift, yWindowCenterPositionShift;
+
+		float windowShiftX = 0, windowShiftY = 0;
+		float pointNum = 0, colorNum = 0;
+		float pointColorShiftL = 0, pointColorShiftU = 0, pointColorShiftV = 0;
+
+		// dla kazdego piksela
+		for (int i = start; i < end; i++) {
+			// pobierz aktualna pozycje piksela
+			xWindowCenterPosition = (int) luv[i].getPos().x();
+			yWindowCenterPosition = (int) luv[i].getPos().y();
+			// aktualna poyzcja i kolor
+			float[] pointColor = luv[i].getColorVector();
+			pointColorL = pointColor[0];
+			pointColorU = pointColor[1];
+			pointColorV = pointColor[2];
+			// licznik iteracji
+			iters = 0;
+			// mean-shiftowanie
+			do {
+				// zachowanie starych danych
+				xWindowCenterPositionOld = xWindowCenterPosition;
+				yWindowCenterPositionOld = yWindowCenterPosition;
+				oldPointColorL = pointColorL;
+				oldPointColorU = pointColorU;
+				oldPointColorV = pointColorV;
+				// wartosci przesuniecia
+				windowShiftX = 0; windowShiftY = 0;
+				pointColorShiftL = 0; pointColorShiftU = 0; pointColorShiftV = 0;
+				pointNum = 0; colorNum = 0;
+				// MEAN SHIFT (17)
+				for (int ry = -hrad; ry <= hrad; ry++) {
+					int y2 = yWindowCenterPosition + ry;
+					if (y2 >= 0 && y2 < height) {
+						for (int rx = -hrad; rx <= hrad; rx++) {
+							int x2 = xWindowCenterPosition + rx;
+							if (x2 >= 0 && x2 < width) {
+								float pointDistance = metrics.getDistance(rx, ry);
+								if (pointDistance  <= hrad) {
+									float[] pointColor2 = luv[y2 * width + x2].getColorVector();
+									float dColorL = pointColorL - pointColor2[0];
+									float dColorU = pointColorU - pointColor2[1];
+									float dColorV = pointColorV - pointColor2[2];
+
+									float colorDistance = metrics.getDistance(dColorL, dColorU, dColorV);
+									if (colorDistance <= hcolor) {
+										float pointKernelWeight = kernel.gFunction(pointDistance, hrad);
+										windowShiftX += x2 * pointKernelWeight;
+										windowShiftY += y2 * pointKernelWeight;
+										pointNum += pointKernelWeight;
+										float colorKernelWeight = kernel.gFunction(colorDistance, hcolor);
+										pointColorShiftL += pointColor2[0] * colorKernelWeight;
+										pointColorShiftU += pointColor2[1] * colorKernelWeight;
+										pointColorShiftV += pointColor2[2] * colorKernelWeight;
+										colorNum += colorKernelWeight;
+									}
+								}
+							}
+						}
+					}
+				}
+				// nowe przesuniecie okna
+				xWindowCenterPosition = (int) (windowShiftX * (1.0 / pointNum) + 0.5);
+				yWindowCenterPosition = (int) (windowShiftY * (1.0 / pointNum) + 0.5);
+				pointColorL = (float)(pointColorShiftL * (1.0f / colorNum));
+				pointColorU = (float)(pointColorShiftU * (1.0f / colorNum));
+				pointColorV = (float)(pointColorShiftV * (1.0f / colorNum));
+				// mean-shift
+				xWindowCenterPositionShift = xWindowCenterPosition - xWindowCenterPositionOld;
+				yWindowCenterPositionShift = yWindowCenterPosition - yWindowCenterPositionOld;
+				pointColorShiftL = pointColorL - oldPointColorL;
+				pointColorShiftU = pointColorU - oldPointColorU;
+				pointColorShiftV = pointColorV - oldPointColorV;
+				iters++;
+			} while (metrics.isWithinDistance(minShift, xWindowCenterPositionShift, yWindowCenterPositionShift,
+					pointColorShiftL, pointColorShiftU, pointColorShiftV) && iters < maxIters);
+
+			outImageLuv[i] = new Pixel(luv[i].getPos(), pointColorL, pointColorU, pointColorV);
+			updateProgress(algorithmProgress++, pixelNumber);
+			updateMessage(stopWatch.getFormattedTime());
+		}
+	}
+
+	protected void grayscaleFiltration(Pixel[] luv, Pixel[] outImageLuv, int start, int end,
+			int width, int height, int hrad, int hcolor, int pixelNumber) {
+
+		int iters = 0;
+		int xWindowCenterPosition, yWindowCenterPosition;
+		int xWindowCenterPositionOld, yWindowCenterPositionOld;
+		// stary color
+		float oldPointColor;
+		// nowy kolor
+		float pointColor, xWindowCenterPositionShift, yWindowCenterPositionShift;
+
+		float windowShiftX = 0, windowShiftY = 0;
+		float pointNum = 0, colorNum = 0;
+		float pointColorShift = 0;
+
+		// dla kazdego piksela
+		for (int i = start; i < end; i++) {
+			// pobierz aktualna pozycje piksela
+			xWindowCenterPosition = (int) luv[i].getPos().x();
+			yWindowCenterPosition = (int) luv[i].getPos().y();
+			// aktualna poyzcja i kolor
+			pointColor = luv[i].getColorVector()[0];
+			// licznik iteracji
+			iters = 0;
+			// mean-shiftowanie
+			do {
+				// zachowanie starych danych
+				xWindowCenterPositionOld = xWindowCenterPosition;
+				yWindowCenterPositionOld = yWindowCenterPosition;
+				oldPointColor = pointColor;
+				// wartosci przesuniecia
+				windowShiftX = 0; windowShiftY = 0; pointColorShift = 0;
+				pointNum = 0; colorNum = 0;
+				// MEAN SHIFT (17)
+				for (int ry = -hrad; ry <= hrad; ry++) {
+					int y2 = yWindowCenterPosition + ry;
+					if (y2 >= 0 && y2 < height) {
+						for (int rx = -hrad; rx <= hrad; rx++) {
+							int x2 = xWindowCenterPosition + rx;
+							if (x2 >= 0 && x2 < width) {
+								float pointDistance = metrics.getDistance(rx, ry);
+								if (pointDistance  <= hrad) {
+									float pointColor2 = luv[y2 * width + x2].getColorVector()[0];
+									float dColor = pointColor - pointColor2;
+
+									float colorDistance = metrics.getDistance(dColor);
+									if (colorDistance <= hcolor) {
+										float pointKernelWeight = kernel.gFunction(pointDistance, hrad);
+										windowShiftX += x2 * pointKernelWeight;
+										windowShiftY += y2 * pointKernelWeight;
+										pointNum += pointKernelWeight;
+										float colorKernelWeight = kernel.gFunction(colorDistance, hcolor);
+										pointColorShift += pointColor2 * colorKernelWeight;
+										colorNum += colorKernelWeight;
+									}
+								}
+							}
+						}
+					}
+				}
+				// nowe przesuniecie okna
+				xWindowCenterPosition = (int) (windowShiftX * (1.0 / pointNum) + 0.5);
+				yWindowCenterPosition = (int) (windowShiftY * (1.0 / pointNum) + 0.5);
+				pointColor = (float)(pointColorShift * (1.0f / colorNum));
+				// mean-shift
+				xWindowCenterPositionShift = xWindowCenterPosition - xWindowCenterPositionOld;
+				yWindowCenterPositionShift = yWindowCenterPosition - yWindowCenterPositionOld;
+				pointColorShift = pointColor - oldPointColor;
+				iters++;
+			} while (metrics.isWithinDistance(minShift, xWindowCenterPositionShift, yWindowCenterPositionShift,
+					pointColorShift) && iters < maxIters);
+
+			outImageLuv[i] = new Pixel(luv[i].getPos(), pointColor);
+			updateProgress(algorithmProgress++, pixelNumber);
+			updateMessage(stopWatch.getFormattedTime());
+		}
+	}
 	/**
 	 * Wygadzenie obrazu wg algorytmu MS.
 	 * @param pixels wejsciowe piksele RGB
@@ -123,91 +293,18 @@ public abstract class MeanShiftTask extends Task<Image> {
 
 		int width = pixels.length;
 		int height = pixels[0].length;
-
-		int iters = 0;
 		int hrad = spatialPar;
 		int hcolor = rangePar;
 		int pixelNumber = luv.length;
 		updateProgress(algorithmProgress++, pixelNumber);
 
-		float[] argVector = new float[channels + 2];
-
-		// dla kazdego piksela
-		for (int i = start; i < end; i++) {
-
-			// pobierz aktualna pozycje piksela
-			int xWindowCenterPosition = (int) luv[i].getPos().x();
-			int yWindowCenterPosition = (int) luv[i].getPos().y();
-			// miejsce na stare dane
-			int xWindowCenterPositionOld, yWindowCenterPositionOld;
-			float[] oldPointColor;
-			// aktualna poyzcja i kolor
-			float[] pointColor = luv[i].getColorVector();
-			// licznik iteracji
-			iters = 0;
-			// mean-shiftowanie
-			do {
-				// zachowanie starych danych
-				xWindowCenterPositionOld = xWindowCenterPosition;
-				yWindowCenterPositionOld = yWindowCenterPosition;
-				oldPointColor = pointColor;
-				// wartosci przesuniecia
-				float windowShiftX = 0, windowShiftY = 0;
-				float[] pointColorShift = new float[channels];
-				float pointNum = 0, colorNum = 0;
-				// MEAN SHIFT (17)
-				for (int ry = -hrad; ry <= hrad; ry++) {
-					int y2 = yWindowCenterPosition + ry;
-					if (y2 >= 0 && y2 < height) {
-						for (int rx = -hrad; rx <= hrad; rx++) {
-							int x2 = xWindowCenterPosition + rx;
-							if (x2 >= 0 && x2 < width) {
-								float pointDistance = metrics.getDistance(rx, ry);
-								if (pointDistance  <= hrad) {
-									float[] pointColor2 = luv[y2 * width + x2].getColorVector();
-
-									float[] dColor = new float[channels];
-									for (int j = 0; j < dColor.length; j++) {
-										dColor[j] = pointColor[j] - pointColor2[j];
-									}
-
-									float colorDistance = metrics.getDistance(dColor);
-									if (colorDistance <= hcolor) {
-										float pointKernelWeight = kernel.gFunction(pointDistance, hrad);
-										windowShiftX += x2 * pointKernelWeight;
-										windowShiftY += y2 * pointKernelWeight;
-										pointNum += pointKernelWeight;
-										float colorKernelWeight = kernel.gFunction(colorDistance, hcolor);
-										for (int j = 0; j < pointColorShift.length; j++) {
-											pointColorShift[j] += pointColor2[j] * colorKernelWeight;
-										}
-										colorNum += colorKernelWeight;
-									}
-								}
-							}
-						}
-					}
-				}
-				// nowe przesuniecie okna
-				xWindowCenterPosition = (int) (windowShiftX * (1.0 / pointNum) + 0.5);
-				yWindowCenterPosition = (int) (windowShiftY * (1.0 / pointNum) + 0.5);
-				for (int j = 0; j < pointColor.length; j++) {
-					pointColor[j] = (float)(pointColorShift[j] * (1.0f / colorNum));
-				}
-				// mean-shift
-				argVector[0] = xWindowCenterPosition - xWindowCenterPositionOld;
-				argVector[1] = yWindowCenterPosition - yWindowCenterPositionOld;
-				for (int j = 0; j < pointColor.length; j++) {
-					argVector[j + 2] = pointColor[j] - oldPointColor[j];
-				}
-				iters++;
-			} while (metrics.isWithinDistance(minShift, argVector) && iters < maxIters);
-
-			outImageLuv[i] = new Pixel(luv[i].getPos(), pointColor);
-			updateProgress(algorithmProgress++, pixelNumber);
-			updateMessage(stopWatch.getFormattedTime());
-
+		// tu powinien byc wzorzec strategii, ale juz mi sie nie chce
+		if (this.channels > 1) {
+			colorFiltration(luv, outImageLuv, start, end, width, height, hrad, hcolor, pixelNumber);
+		} else {
+			grayscaleFiltration(luv, outImageLuv, start, end, width, height, hrad, hcolor, pixelNumber);
 		}
+
 		LOGGER.info("MEAN SHIFT ALGORITHM FINISHED AND START SEGMENTATION");
 	}
 
